@@ -4,6 +4,7 @@
 		<script src="rote/moonsole.js"></script>
 		<script src="rote/event-system.js"></script>
 		<script src="rote/howler.js"></script>
+		<script src="rote/trail.js"></script>
 		<script src="defensk.c.js"></script>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,6 +27,7 @@ body {
 	color: gray;
 
 	animation: none;
+	image-rendering: pixelated;
 }
 
 @keyframes quake {
@@ -81,33 +83,47 @@ body {
 	top: 0px;
 	min-height: 8vh;
 	width: 100%;
-	background-image: url(dashboard.png);
+	background-image: none;
 	background-size: 100% auto;
 	z-index: 1;
 }
 
 @keyframes cloud {
 	0% {
-		background-position: 0% var(--bg-y);
+		background-position: 0% var(--bg-y), 0% var(--bg2-y);
+	}
+
+	49% {
+		filter: invert(1);
+	}
+	
+	50% {
+		filter: invert(0.5);
+		background-position: 50% var(--bg-y), 200% var(--bg2-y);
+	}
+
+	55% {
+		filter: invert(1);
 	}
 
 	100% {
-		background-position: 100% var(--bg-y);
+		background-position: 100% var(--bg-y), 400% var(--bg2-y);
 	}
 }
 
-canvas.main {
+canvas.main, .city-canvas {
 	position: fixed;
 	top: 0px;
 	left: 0px;
 
 	filter: invert(1);
 	z-index: 2;
-	background-image: url(cloud.png);
+	background-image: url(cloud.png), url(cloud.png);
 	background-size: 128px 128px;
 	
-	--bg-y: 10%;
-	background-position: 0 10%;
+	--bg-y: 30%;
+	--bg2-y: 10%;
+	background-position: 0 10%, 0 30%;
 	background-repeat: repeat-x;
 	animation: cloud 100s infinite linear;
 }
@@ -144,8 +160,8 @@ button {
 	border-top-width: 1px;
 	border-bottom-width: 3px;
 	font-family: inherit;
-	width: 2em;
-	height: 2em;
+	width: 3em;
+	height: 3em;
 	display: inline-block;
 	vertical-align: top;
 }
@@ -156,18 +172,26 @@ button:active {
 }
 
 .city {
-	transform: scaleY(-1);
+	transform: translateX(-50%);
+	left: 50%;
 	position: relative;
 	font-size: 0px;
 	z-index: 4;
+	overflow-x: scroll;
+	max-width: 100%;
+	display: inline-block;
+	white-space: nowrap;
 }
 
 .city .slot {
 	display: inline-block;
-	width: 10%;
-	padding-top: 10%;
-	border: 1px dashed gray;
+	width: 4rem;
+	height: 4rem;
 	margin: 0px;
+	border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.city.select .slot {
 }
 		</style>
 		<script src="defensk.js"></script>
@@ -179,6 +203,7 @@ button:active {
 		</div>
 		<div class="main-container">
 			<canvas class="main"></canvas>
+			<canvas class="city-canvas"></canvas>
 		</div>
 		<div class="city"></div>
 		<script>
@@ -188,10 +213,15 @@ button:active {
 				slot.classList.add("slot",
 					`x${i % 10}`, `y${~~(i / 10)}`);
 				city.appendChild(slot);
+				if((i % 10) == 0){
+					if(i > 0)
+						city.appendChild(document
+							.createElement("br")
+						);
+				}
 			}
 		</script>
 		<div class="base">
-			<div>DEFENSK SYSTEM</div>
 			<div class="builds">
 				<button class="factory"></button>
 				<button class="residence"></button>

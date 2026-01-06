@@ -16,20 +16,41 @@ DEFENSK().then(async function(instance){
 	main();
 });
 
-const maxY = window.innerHeight;
-const maxX = window.innerWidth;
+let scaleX = Math.max(
+	Math.min((window.innerWidth/480), (window.innerHeight/720)), 1
+);
+let scaleY = scaleX;
+let maxY = window.innerHeight/scaleX;
+let maxX = window.innerWidth/scaleY;
 
 function render(){
+	scaleX = Math.max(
+		Math.min((window.innerWidth/480), (window.innerHeight/720)), 1
+	);
+	scaleY = scaleX;
+	maxY = window.innerHeight/scaleX;
+	maxX = window.innerWidth/scaleY;
+
 	const canvas = document.querySelector("canvas.main");
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+	canvas.width = window.innerWidth/scaleX;
+	canvas.height = window.innerHeight/scaleY;
 	canvas.style.width = window.innerWidth;
 	canvas.style.height = window.innerHeight;
 
+
+	const canvas2 = document.querySelector(".city-canvas");
+	canvas2.width = window.innerWidth*5;
+	canvas2.height = window.innerHeight*5;
+	canvas2.style.width = window.innerWidth;
+	canvas2.style.height = window.innerHeight;
+
 	const context = canvas.getContext("2d");
+	const context2 = canvas2.getContext("2d");
 	return {
 		canvas,
-		context
+		context,
+		canvas2,
+		context2
 	}
 }
 
@@ -77,9 +98,23 @@ class Game extends EventSystem {
 			requestAnimationFrame(f);
 		});
 
+		window.addEventListener("resize", function f(){
+			if(window.readyState == "loading"){
+				return window.addEventListener(
+					"DOMContentLoaded",
+					f
+				);
+			}
+
+			Object.assign(this, render());
+
+			_this.emit("resize");
+		});
+
 		this.explosions = [];
 		this.missiles = [];
 		this.bombs = [];
+		this.buildings = [];
 	}
 }
 
@@ -217,7 +252,7 @@ Missile.prototype.draw = function(game, phase){
 }
 
 Missile.prototype.explode = function(game){
-	const radius = 90;
+	const radius = 50;
 	const entry = this.points[this.points.length]
 		|| [ this.destX, this.destY ]
 	;
@@ -231,6 +266,7 @@ Missile.prototype.explode = function(game){
 		game.explosions.splice(game.explosions.indexOf(explosion), 1);
 	}
 
+	let destroys = [];
 	for(const bomb of game.bombs){
 		if(bomb.x < (x - radius))
 			continue ;
@@ -245,7 +281,11 @@ Missile.prototype.explode = function(game){
 			continue ;
 
 		//game.bombs.splice(game.bombs.indexOf(bomb), 1);
-		bomb.destroy();
+		destroys.push(bomb);
+	}
+
+	for(const bomb of destroys){
+		bomb.destroy && bomb.destroy();
 	}
 }
 
@@ -291,11 +331,73 @@ Bomb.prototype.draw = function(game, phase){
 	game.context.fillRect(this.x - 1, y, 3, 3);
 }
 
+class Building {
+	constructor(){
+		this.width = 0;
+		this.height = 0;
+		this.occupies = [];
+	}
+}
+/*
+Building.getSlotFromXY = function(x, y){
+	x = (~~(x/maxX * 10));
+	y = (~~(y/maxY * 10));
+
+	alert([ x, y ])
+}*/
+
+Building.getSlotFromPixelCoord = function(x, y){
+	const [ slot ] = [ ...document.elementsFromPoint(x, y) ]
+		.filter(e => e.classList.contains("slot"))
+	;
+
+	alert(slot.classList);
+}
+
+Building.getSlotFromXY = function(x, y){
+	return document.querySelector(`.slot.x${x}.y${y}`);
+}
+
+Building.prototype.place = function(game, x, y){
+	/*if(game.buildings.includes(this))
+		throw new Error("Already placed");*/
+
+	game.buildings[x + (y * 10)] = this;
+	this.occupies.push([ x, y ]);
+	this.pxWidth = window.innerWidth/10;
+	this.pxHeight = this.pxWidth;
+}
+
+Building.prototype.draw = function(game){
+	const context = game.context2;
+	for(const [ x, y ] of this.occupies){
+		const slot = Building.getSlotFromXY(x, y);
+		/*if(slot){
+			slot.style.backgroundColor = "red";
+		}*/
+		let { top, left, right, bottom } = slot
+			.getBoundingClientRect()
+		;
+
+		/*
+		top = (top/window.innerHeight) * maxY;
+		left = (left/window.innerWidth) * maxX;
+		bottom = (bottom/window.innerHeight) * maxY;
+		right = (right/window.innerWidth) * maxX;*/
+
+		/*game.context.fillRect(top, left, 30, 30);*/
+
+		this.image && context.drawImage(this.image,
+			left*5, top*5, right*5 - left*5, bottom*5 - top*5
+		)
+	}
+}
+
 const game = new Game();
 let clientX = 30;
 let clientY = 30;
 
-let difficulty = 3;
+let difficulty = 5;
 let last = 0;
 let last30 = 0;
 let missiles = 0;
@@ -304,6 +406,7 @@ game.on("frame", function(){
 		return ;
 
 	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	this.context2.clearRect(0, 0, this.canvas.width*5, this.canvas.height*5);
 	this.context.globalAlpha = 1;
 	this.context.save();
 	for(const missile of this.missiles){
@@ -356,6 +459,13 @@ game.on("frame", function(){
 	for(const bomb of this.bombs){
 		this.context.globalAlpha = 1;
 		bomb.draw(this);
+	}
+
+	this.context.restore();
+
+	for(const build of this.buildings){
+		if(build)
+			build.draw(this);
 	}
 
 	const now = Date.now();
@@ -455,19 +565,29 @@ async function main(){
 	const { context } = render();
 
 	window.addEventListener("click", function(click){
+		if(!click.target.matches(".city, .city *"))
+			return ;
+
+		Building.getSlotFromPixelCoord(click.clientX, click.clientY);
+	});
+
+	window.addEventListener("click", function(click){
 		if(click.target.matches(".base, .base *, .city, .city *"))
 			return ;
 
 		if(missiles <= 0)
 			return ;
 
+		clientX = (click.clientX/window.innerWidth) * maxX;
+		clientY = (click.clientY/window.innerHeight) * maxY;
+
 		const missile = game.launchMissile(clientX, clientY);
 		missiles--;
 	});
 
 	function move(mouse){
-		clientX = mouse.clientX;
-		clientY = mouse.clientY;
+		clientX = (mouse.clientX/window.innerWidth) * maxX;
+		clientY = (mouse.clientY/window.innerHeight) * maxY;
 	}
 
 	window.addEventListener("mousemove", move);
@@ -475,6 +595,14 @@ async function main(){
 	setInterval(function(){
 		missiles = Math.min(missiles + 1, 20);
 	}, 1000)
+
+	const build = new Building();
+	const image = build.image = new Image();
+	image.src = URL.createObjectURL(await (await fetch("exp/command.png"))
+		.blob()
+	);
+
+	build.place(game, 2, 9);
 }
 
 /*
@@ -517,7 +645,7 @@ const aquake = new Howl({
 	volume: v
 });
 const aexplosion = new Howl({
-	src: [ "explosion.mp3" ],
+	src: [ "explosion.wav" ],
 	autoplay: false,
 	loop: false,
 	volume: v*2
