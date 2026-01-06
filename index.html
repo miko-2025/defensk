@@ -3,407 +3,203 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script src="rote/moonsole.js"></script>
 		<script src="rote/event-system.js"></script>
+		<script src="rote/howler.js"></script>
 		<script src="defensk.c.js"></script>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
 		<style>
-body {
-	filter: invert(1);
-	background-color: black;
+* {
+	box-sizing: border-box;
+	overflow-x: hidden;
+	background-size: 100% 100%;
 }
 
-canvas {
+body {
+	padding: 0px;
+	margin: 0px;
+	padding-top: 100vh;
+	position: relative;
+	background-color: black;
 
+	font-family: Black Ops One;
+	color: gray;
+
+	animation: none;
+}
+
+@keyframes quake {
+	0% {
+		transform: translateX(10px);
+	}
+	
+	50% {
+		transform: translateX(-10px);
+	}
+	
+	100% {
+		transform: translateX(0px);
+	}
+}
+
+@keyframes quake2 {
+	0% {
+		transform: translateX(10px);
+	}
+	
+	50% {
+		transform: translateX(-10px);
+	}
+	
+	100% {
+		transform: translateX(0px);
+	}
+}
+
+.quake-1 > * {
+	animation: quake 0.2s;
+	animation-repeat: 10;
+}
+
+.quake-2 > * {
+	animation: quake2 0.2s;
+	animation-repeat: 10;
+}
+
+.base, .status {
+	position: relative;
+	min-height: 50vh;
+	border-top: 1px solid gray;
+	background-image: url(dashboard.png);
+	background-size: auto 100%;
+	z-index: 4;
+	padding: 0.4em;
+}
+
+.status {
+	position: fixed;
+	top: 0px;
+	min-height: 8vh;
+	width: 100%;
+	background-image: url(dashboard.png);
+	background-size: 100% auto;
+	z-index: 1;
+}
+
+@keyframes cloud {
+	0% {
+		background-position: 0% var(--bg-y);
+	}
+
+	100% {
+		background-position: 100% var(--bg-y);
+	}
+}
+
+canvas.main {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+
+	filter: invert(1);
+	z-index: 2;
+	background-image: url(cloud.png);
+	background-size: 128px 128px;
+	
+	--bg-y: 10%;
+	background-position: 0 10%;
+	background-repeat: repeat-x;
+	animation: cloud 100s infinite linear;
+}
+
+.balance::before {
+	display: inline-block;
+	width: 1.5em;
+	height: 2em;
+
+	content: '$';
+	line-height: 2em;
+}
+
+.missile {
+	line-height: 2em;
+}
+
+.missile::before {
+	display: inline-block;
+	width: 2em;
+	height: 2em;
+	content: " ";
+
+	filter: invert(1);
+	background-image: url(img/missile.png);
+	background-size: 2em 2em;
+	vertical-align: middle;
+	opacity: 0.4;
+}
+
+button {
+	background-color: inherit;
+	border: 1px solid gray;
+	border-top-width: 1px;
+	border-bottom-width: 3px;
+	font-family: inherit;
+	width: 2em;
+	height: 2em;
+	display: inline-block;
+	vertical-align: top;
+}
+
+button:active {
+	border-top-width: 3px;
+	border-bottom-width: 1px;
+}
+
+.city {
+	transform: scaleY(-1);
+	position: relative;
+	font-size: 0px;
+	z-index: 4;
+}
+
+.city .slot {
+	display: inline-block;
+	width: 10%;
+	padding-top: 10%;
+	border: 1px dashed gray;
+	margin: 0px;
 }
 		</style>
-		<script>
-let Defensk = null;
-let defensk = null;
-
-DEFENSK().then(async function(instance){
-	Defensk = instance;
-	defensk = Object.fromEntries([
-		[ "create_spline", "number", "number", "number" ],
-		[ "spline_free", null, "number" ],
-		[ "spline_at", null, "number", "number", "number", "number" ],
-		[ "malloc", "number", "number" ],
-		[ "free", null, "number" ]
-	].map(function([ name, ret, ...args ]){	
-		return [ name, Defensk.cwrap(name, ret, args) ]
-	}));
-
-	main();
-});
-
-const maxY = window.innerHeight;
-const maxX = window.innerWidth;
-
-function render(){
-	const canvas = document.querySelector("canvas.main");
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-	canvas.style.width = window.innerWidth;
-	canvas.style.height = window.innerHeight;
-	
-	const context = canvas.getContext("2d");
-	return {
-		canvas,
-		context
-	}
-}
-
-class Spline {
-	constructor(coords){
-		coords = new Float64Array(coords);
-		const n = coords.length * coords.BYTES_PER_ELEMENT;
-		this.cptr = defensk.malloc(n);
-		Defensk.HEAPF64.set(coords, this.cptr >> 3);
-		
-		this.spline = defensk.create_spline(
-			this.cptr,
-			coords.length
-		);
-	}
-}
-
-Spline.prototype.at = function(pos){
-	const xPtr = defensk.malloc(8);
-	const yPtr = defensk.malloc(8);
-
-	defensk.spline_at(this.spline, pos, xPtr, yPtr);
-
-	const x = Defensk.HEAPF64[xPtr >> 3];
-	const y = Defensk.HEAPF64[yPtr >> 3];
-	
-	defensk.free(xPtr);
-	defensk.free(yPtr);
-
-	return [ x, y ];
-}
-
-Spline.prototype.destroy = function(){
-	defensk.free(this.cptr);
-	defensk.spline_free(this.spline);
-}
-
-class Game extends EventSystem {
-	constructor(){
-		super();
-		const _this = this;
-		requestAnimationFrame(function f(){
-			_this.emit("frame");
-
-			requestAnimationFrame(f);
-		});
-
-		this.explosions = [];
-		this.missiles = [];
-		this.bombs = [];
-	}	
-}
-
-Game.prototype.launchMissile = function(...param){
-	const game = this;
-	const missile = new Missile(
-		Math.random()*maxX, maxY,
-		...param
-	);
-	missile.destroy = function(){
-		this.spline.destroy();
-		this.emit("destroy");
-		game.missiles.splice(game.missiles.indexOf(this), 1);
-	}
-	this.missiles.push(missile);
-
-	return missile;
-}
-
-Game.prototype.dropBomb = function(x, speed){
-	if(x < 0){
-		x = Math.random()*maxX;
-	}
-
-	const game = this;
-	const bomb = new Bomb(
-		x, speed
-	);
-
-	bomb.destroy = function(){
-		this.emit("destroy");
-		game.bombs.splice(game.bombs.indexOf(this), 1);
-	}
-	this.bombs.push(bomb);
-
-	return bomb;
-}
-
-class Explosion {
-	constructor(x, y, r){		
-		this.progress = 0;
-		this.x = x;
-		this.y = y;
-		this.r = r;
-	}
-}
-
-Explosion.prototype.draw = function(game, phase){
-	this.progress = Math.min(this.progress, 100);
-	if(this.progress == 100)
-		return this.destroy && this.destroy();
-
-	game.context.beginPath();
-	game.context.arc(this.x, this.y,
-		this.r * this.progress/100, 0, Math.PI * 2
-	);
-	game.context.fill();
-	game.context.stroke();
-}
-
-class Missile extends EventSystem {
-	constructor(startX, startY, destX, destY){
-		super();
-
-		this.destX = destX;
-		this.destY = destY;
-		this.points = [];
-		this.coords = [
-			startX, startY,
-			startX, startY,
-			((destX - 100) + (Math.random()*200)),
-			((destY - 50) + (Math.random()*200)),
-			destX, destY
-		];
-		this.spline = new Spline(this.coords);
-		this.progress = 0;
-	}
-}
-
-Missile.prototype.drawPoints = function(game){
-	const { context } = game;
-	const points = this.points.slice(-5);
-	context.beginPath();
-	for(const [ x, y ] of points){
-		context.moveTo(x, y);
-		context.fillRect(x - 2, y - 2, 1, 1);
-		context.lineTo(x, y);
-		//console.log(x, y);
-	}
-	context.stroke();
-}
-
-Missile.prototype.draw = function(game){
-	const { destX, destY, progress } = this;
-	
-	this.progress = Math.min(progress, 100);
-	if(this.progress == 100){
-		this.destroy && this.destroy();
-		this.drawPoints(game);
-		this.explode(game);
-		return ;
-	}
-	
-	this.points.push(this.spline.at((this.progress)/100));
-	this.drawPoints(game);
-}
-
-Missile.prototype.explode = function(game){
-	const radius = 90;
-	const entry = this.points[this.points.length]
-		|| [ this.destX, this.destY ]
-	;
-	const [ x, y ] = entry;
-	//game.context.arc(x, y, radius, 0, 2 * Math.PI);
-	//game.context.stroke();
-
-	const explosion = new Explosion(x, y, radius);
-	game.explosions.push(explosion);
-	explosion.destroy = function(){
-		game.explosions.splice(game.explosions.indexOf(explosion), 1);
-	}
-
-	for(const bomb of game.bombs){
-		if(bomb.x < (x - radius))
-			continue ;
-			
-		if(bomb.x > (x + radius))
-			continue ;
-			
-		if(bomb.y > (y + radius))
-			continue ;
-			
-		if(bomb.y < (y - radius))
-			continue ;
-
-		//game.bombs.splice(game.bombs.indexOf(bomb), 1);
-		bomb.destroy();
-	}
-}
-
-class Bomb extends EventSystem {
-	constructor(x, speed){
-		super();
-		if(x < 0)
-			x = Math.random()*maxX;
-
-		this.progress = 0;
-		this.speed = (speed || (1 + Math.random()))/20;
-		this.x = x;
-	}
-}
-
-Object.defineProperties(Bomb.prototype, {
-	y: {
-		get(){
-			return (this.progress/100)*maxY;
-		}
-	}
-})
-
-Bomb.prototype.draw = function(game, phase){
-	this.progress = this.progress % 100;
-	const y = (this.progress/100)*maxY;
-
-	if(phase == 2){
-		game.context.fillRect(this.x, y - 10, 1, 9);
-		
-		return ;
-	}
-
-	if(phase == 3){
-		game.context.fillRect(this.x, y - 33, 1, 33);
-		
-		return ;
-	}
-	
-	game.context.fillRect(this.x - 1, y, 3, 3);
-}
-
-const game = new Game();
-let difficulty = 3;
-let last = 0;
-let last30 = 0;
-game.on("frame", function(){
-	if(!this.context)
-		return ;
-
-	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	this.context.globalAlpha = 1;
-	this.context.save();
-	for(const missile of this.missiles){
-		missile.draw(this);
-	}
-
-	this.context.globalAlpha = 0.05;
-	for(const explosion of this.explosions){
-		if(explosion.progress > 30)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		if(explosion.progress > 50)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		if(explosion.progress > 90)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		explosion.draw(this);
-	}
-
-	this.context.restore();
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 0.05;
-		bomb.draw(this, 3);
-	}
-
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 0.2;
-		bomb.draw(this, 2);
-	}
-
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 1;
-		bomb.draw(this);
-	}
-
-	this.context.restore();
-	const now = Date.now();
-	if((last + (1000/12)) < now){
-		game.emit("fps12");
-		
-		last = now;
-	}
-
-	if((last + (1000/30)) < now){
-		game.emit("fps30");
-		
-		last30 = now;
-	}
-});
-
-game.on("fps30", function(){
-	for(const missile of this.missiles){
-		missile.progress += 1;
-	}
-
-	for(const bomb of this.bombs){
-		bomb.progress += bomb.speed;
-	}
-
-	for(const explosion of this.explosions){
-		explosion.progress +=
-			(10 - Math.max(explosion.progress/100, 1));
-	}
-});
-
-
-game.on("fps12", function(){
-	for(const missile of this.missiles){
-
-	}
-
-	for(const bomb of this.bombs){
-
-	}
-
-	if((Math.random() * 500) > 495 - (difficulty * 5)){
-		const bomb = game.dropBomb(-1, 8);
-		const missils = game.launchMissile(
-			bomb.x,
-			bomb.y + (bomb.speed * 800)
-		);
-	}
-});
-
-async function main(){
-	if(document.readyState == "loading"){
-		return window.addEventListener("DOMContentLoaded", main);
-	}
-
-	Object.assign(game, render());
-
-	let pos = 0;
-	let clientX = 30;
-	let clientY = 30;
-	const { context } = render();
-	
-	window.addEventListener("click", function(click){
-		clientX = click.clientX;
-		clientY = click.clientY;
-
-		game.launchMissile(clientX, clientY);
-	});
-}
-		</script>
+		<script src="defensk.js"></script>
 	</head>
 	<body>
-		<canvas class="main"></canvas>
+		<div class="status">
+			<div class="balance">1000</div>
+			<div class="missile">100</div>
+		</div>
+		<div class="main-container">
+			<canvas class="main"></canvas>
+		</div>
+		<div class="city"></div>
+		<script>
+			const city = document.querySelector(".city");
+			for(let i = 0; i < 100; i++){
+				const slot = document.createElement("div");
+				slot.classList.add("slot",
+					`x${i % 10}`, `y${~~(i / 10)}`);
+				city.appendChild(slot);
+			}
+		</script>
+		<div class="base">
+			<div>DEFENSK SYSTEM</div>
+			<div class="builds">
+				<button class="factory"></button>
+				<button class="residence"></button>
+			</div>
+			<div class="ability">
+				<div class="name">AUTO_DEFENSE</div>
+				<div class="level">5</div>
+			</div>
+		</div>
 	</body>
 </html>
