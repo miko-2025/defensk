@@ -1,3 +1,4 @@
+const VERSION = "0.0.3";
 let Defensk = null;
 let defensk = null;
 
@@ -115,7 +116,40 @@ class Game extends EventSystem {
 		this.missiles = [];
 		this.bombs = [];
 		this.buildings = [];
+		this.trade = [];
+
+		this.balance = 300;
 	}
+}
+
+Game.prototype.getBuildFromXY = function(x, y){
+	x = Number(x);
+	y = Number(y);
+	return this.buildings[x + (y * 10)];
+}
+
+Game.prototype.deleteBuildFromXY = function(x, y){
+	x = Number(x);
+	y = Number(y);
+
+	const build = this.getBuildFromXY(x, y);
+	if(build.deleting)
+		return ;
+
+	build.deleting = 1;
+	let res;
+	const ret = new Promise(function(rs, rej){
+		res = rs;
+	});
+
+	build.emit("delete", function(){ res(); });
+	this.buildings[x + (y * 10)] = null;
+
+	return ret;
+}
+
+Game.prototype.deleteBuild = function(build){
+	this.buildings[this.buildings.indexOf(build)] = null;
 }
 
 Game.prototype.launchMissile = function(...param){
@@ -168,6 +202,21 @@ Game.prototype.dropBomb = function(x, speed){
 
 	return bomb;
 }
+
+Object.defineProperties(Game.prototype, {
+	balance: {
+		get(){
+			return this._balance || 0;
+		},
+
+		set(x){
+			this._balance = x;
+			const display = document.querySelector(".balance");
+			if(display)
+				display.textContent = `${x}`;
+		}
+	}
+});
 
 class Explosion {
 	constructor(x, y, r){
@@ -331,13 +380,30 @@ Bomb.prototype.draw = function(game, phase){
 	game.context.fillRect(this.x - 1, y, 3, 3);
 }
 
-class Building {
+class Building extends EventSystem {
 	constructor(){
+		super();
+
 		this.width = 0;
 		this.height = 0;
 		this.occupies = [];
+
+		this.on("second", Building.onSecond);
 	}
 }
+
+Building.onSecond = function(){
+	let relative = this.getRelative(game, 0, -1);
+	if(this.hit && relative && !(relative instanceof SelectorBuilding)){
+		if(this.images && this.images.includes(Building.scaffold))
+			return ;
+		if(this.images)
+			this.images.push(Building.scaffold)
+		else
+			this.images = [ Building.scaffold ];
+	}
+}
+
 /*
 Building.getSlotFromXY = function(x, y){
 	x = (~~(x/maxX * 10));
@@ -351,21 +417,53 @@ Building.getSlotFromPixelCoord = function(x, y){
 		.filter(e => e.classList.contains("slot"))
 	;
 
-	alert(slot.classList);
+	return slot;
+}
+
+Building.getXYFromSlot = function(slot){
+	const attr = slot.classList.toString().split(' ');
+	const x = attr.find(x => x.startsWith('x')).slice(1);
+	const y = attr.find(y => y.startsWith('y')).slice(1);
+
+	return [ x, y ];
 }
 
 Building.getSlotFromXY = function(x, y){
 	return document.querySelector(`.slot.x${x}.y${y}`);
 }
 
+Building.rooftop = function(game, x, y){
+	y = 9;
+	while(game.getBuildFromXY(x, y)) y--;
+
+	return y;
+}
+
+Building.rooftopBuild = function(game, x, y){
+	return game.getBuildFromXY(x, Building.rooftop(x, y));
+}
+
 Building.prototype.place = function(game, x, y){
 	/*if(game.buildings.includes(this))
 		throw new Error("Already placed");*/
+
+	x = Number(x);
+	y = Number(y);
 
 	game.buildings[x + (y * 10)] = this;
 	this.occupies.push([ x, y ]);
 	this.pxWidth = window.innerWidth/10;
 	this.pxHeight = this.pxWidth;
+}
+
+Building.prototype.getXY = function(game){
+	const index = game.buildings.indexOf(this);
+	return [ index % 10, ~~(index / 10) ];
+}
+
+Building.prototype.getRelative = function(game, rx, ry){
+	const [ x, y ] = this.getXY(game);
+	return game.getBuildFromXY(x + rx, y + ry) || null;
 }
 
 Building.prototype.draw = function(game){
@@ -390,6 +488,23 @@ Building.prototype.draw = function(game){
 		this.image && context.drawImage(this.image,
 			left*5, top*5, right*5 - left*5, bottom*5 - top*5
 		)
+
+		if(this.images){
+			for(const image of this.images){
+				context.drawImage(image,
+					left*5, top*5, right*5 - left*5,
+					bottom*5 - top*5
+				);
+			}
+		}
+	}
+}
+
+class Trade extends EventSystem  {
+	constructor(cost){
+		super();
+
+		this.cost = cost;
 	}
 }
 
@@ -405,8 +520,13 @@ game.on("frame", function(){
 	if(!this.context)
 		return ;
 
-	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	this.context2.clearRect(0, 0, this.canvas.width*5, this.canvas.height*5);
+	for(const build of this.buildings){
+		if(build)
+			build.draw(this);
+	}
+
+	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	this.context.globalAlpha = 1;
 	this.context.save();
 	for(const missile of this.missiles){
@@ -462,11 +582,6 @@ game.on("frame", function(){
 	}
 
 	this.context.restore();
-
-	for(const build of this.buildings){
-		if(build)
-			build.draw(this);
-	}
 
 	const now = Date.now();
 	if((last + (1000/12)) < now){
@@ -524,6 +639,40 @@ game.on("fps12", function(){
 	this.context.restore();
 });
 
+game.on("second", function(){
+	for(const building of this.buildings){
+		building && building.emit("second", this);
+	}
+
+	for(const trade of this.trade){
+		trade && trade.emit("second", this);
+	}
+});
+
+game.on("drop", function(bomb){
+	const _this = this;
+	bomb.on("destroy", function(){
+		if(bomb.progress >= 99){
+			const x = (bomb.x/maxX) * 10;
+			_this.emit("hit", bomb);
+
+			notif(`/\/ IMPACT/${~~(x)} /\/`);
+		}
+	});
+});
+
+game.on("hit", function(bomb){
+	const x = ~~((bomb.x/maxX) * 10);
+	const y = Building.rooftop(this, x, 0) + 1;
+	const build = this.getBuildFromXY(x, y);
+
+	if(!build)
+		return ;
+
+	//notif(`HIT BUILDING: ${x} / ${y}`);
+	build.emit("hit", this, bomb);
+});
+
 // AUTO DEFENSE SYSTEM //
 class AbilityAutoDefense {
 	constructor(game){
@@ -553,22 +702,189 @@ class AbilityAutoDefense {
 
 // --------------------
 
+function anyInstanceOf(target, ...args){
+	for(const arg of args){
+		if(target instanceof arg)
+			return true;
+	}
+
+	return false;
+}
+
+function notif(message){
+	const notif = document.querySelector(".notif");
+	const entry = document.createElement("div");
+	entry.textContent = message;
+
+	notif.appendChild(entry);
+	notif.scrollTo(0, notif.scrollHeight);
+	entry.style.animation = `notif${([ ...notif.children ].length % 2)}`
+		+ ` 20s`
+	;
+}
+
+function siege(diff, duration = 5000){
+	let last = difficulty;
+	difficutly = diff;
+	if(diff < 5)
+	 	notif("CAUTION: ENEMY UNITS DETECTED");
+	else
+	 	notif("HIGH PRESENCE OF ENEMY UNITS DETECTED");
+	notif(`- SCALE: ${~~(diff/5)}`)
+
+	setTimeout(function(){
+		notif("\/\/\/ LOGGED REDUCED ENEMY PRESENCE \/\/\/");
+		difficulty = last;
+	}, duration);
+}
+
 async function main(){
+	//game.balance = 300;
+	game.balance = 3000;
+	game.trade.push(new MissileTrade());
+
+	Building.scaffold = new Image();
+	Building.scaffold.src = "./exp/scaffold.png";
+
 	if(document.readyState == "loading"){
 		return window.addEventListener("DOMContentLoaded", main);
 	}
+
+	notif("DEFENSK v" + VERSION);
+
+	setInterval(function(){ game.emit("second"); }, 1000);
 
 	Object.assign(game, render());
 	new AbilityAutoDefense(game);
 
 	let pos = 0;
 	const { context } = render();
+	let buildTypes = [
+		[ "command", CommandBuilding ],
+		[ "resident", ResidentBuilding ],
+		[ "research", ResearchBuilding ],
+		[ "trade", ResearchBuilding ],
+		[ "transit", ResearchBuilding ],
+		[ "factory", ResearchBuilding ]
+	];
+	const buildsDOM = document.querySelector(".base .builds");
 
-	window.addEventListener("click", function(click){
+	for(const type of buildTypes.map(function([ type ]){
+		const dom = document.createElement("button");
+		dom.classList.add(type);
+		dom.style.backgroundImage = `url(./icon/${type}.png)`;
+
+		return dom;
+	})){
+		buildsDOM.appendChild(type);
+	}
+
+	buildTypes = Object.fromEntries(buildTypes);
+
+	let SelectedBuildType = null;
+	let builderLock = 0;
+	window.addEventListener("click", async function(click){
+		if(builderLock)
+			return ;
+
+		function finish(){
+			builderLock = 0;
+		}
+
 		if(!click.target.matches(".city, .city *"))
 			return ;
 
-		Building.getSlotFromPixelCoord(click.clientX, click.clientY);
+		if(!SelectedBuildType)
+			return ;
+
+		SelectedBuildType.cost =
+			SelectedBuildType.cost || 0
+		;
+
+		if(game.balance < SelectedBuildType.cost){
+			return notif("-- [!] INSUFFICIENT BALANCE --");
+		}
+
+		builderLock = 1;
+
+		const [ x, y ] = Building.getXYFromSlot(Building
+			.getSlotFromPixelCoord(click.clientX, click.clientY)
+		);
+
+		let build = game.getBuildFromXY(x, y);
+		if(build && !(build instanceof SelectorBuilding)){
+			if(SelectedBuildType == DeleteBuilding){
+				finish();
+				return await game.deleteBuildFromXY(x, y);
+			}
+
+			finish();
+			return ;
+		}
+
+		let roof = Building.rooftop(game, x, y);
+		let roofBuild = game.getBuildFromXY(x, roof + 1);
+		while(roofBuild instanceof SelectorBuilding){
+			roof = roof + 1;
+			roofBuild = game.getBuildFromXY(x, roof + 1);
+		}
+
+		if(roof != y){
+			if(roofBuild instanceof SelectorBuilding)
+				return finish();
+
+			const exist = game.buildings.find(
+				build => build instanceof SelectorBuilding
+			);
+			if(exist)
+				game.buildings[game.buildings.indexOf(exist)]
+					= null;
+
+			roof = Building.rooftop(game, x, y);
+
+			build = new SelectorBuilding(game);
+			await build.task;
+			build.place(game, x, roof);
+
+			return finish();
+		}
+
+		build = new SelectedBuildType(game);
+		if(build.fail)
+			return finish()
+		;
+		await build.task;
+		build.place(game, x, y);
+		//alert(Building.rooftop(game, x, y));
+
+		const exist = game.buildings.find(
+			build => build instanceof SelectorBuilding
+		);
+		if(exist)
+			game.buildings[game.buildings.indexOf(exist)]
+				= null;
+
+		finish();
+
+		game.balance -= SelectedBuildType.cost;
+
+		for(const el of document.body
+			.querySelectorAll(".base .builds > *")
+		) el.classList.remove("active");
+		SelectedBuildType = null;
+	});
+
+	window.addEventListener("click", async function(click){
+		if(!click.target.matches(".base .builds > *"))
+			return ;
+
+		for(const el of click.target.parentElement
+			.querySelectorAll("*")
+		) el.classList.remove("active");
+
+		click.target.classList.add("active");
+		SelectedBuildType = buildTypes[click.target.classList[0]];
+		//alert(selectedBuildType = click.target.classList[0])
 	});
 
 	window.addEventListener("click", function(click){
@@ -592,17 +908,212 @@ async function main(){
 
 	window.addEventListener("mousemove", move);
 
+	setTimeout(function(){
+		siege(1000, 30000);
+	}, 3000)
+	//siege(0.5, 30000);
 	setInterval(function(){
-		missiles = Math.min(missiles + 1, 20);
-	}, 1000)
+		siege(10, 10000);
+	}, 60000)
 
-	const build = new Building();
-	const image = build.image = new Image();
-	image.src = URL.createObjectURL(await (await fetch("exp/command.png"))
-		.blob()
-	);
-
+	/*let build = new CommandBuilding();
+	await build.task;
 	build.place(game, 2, 9);
+
+	let command = build;
+	setTimeout(function(){
+		command.destroy();
+	}, 3000);
+
+	for(const [ x, y ] of [
+		[ 3, 9 ],
+		[ 3, 8 ],
+		[ 3, 7 ],
+		[ 3, 6 ],
+		[ 3, 5 ],
+		[ 3, 4 ],
+		[ 4, 9 ],
+		[ 4, 8 ],
+		[ 4, 7 ],
+		[ 5, 9 ],
+		[ 5, 8 ],
+		[ 5, 7 ],
+		[ 5, 6 ]
+	]){
+		build = new ResidentBuilding();
+		await build.task;
+		build.place(game, x, y);
+	}
+
+	/*setInterval(function(){
+		notif(`${Date.now()}`);
+	}, 1000)*/
+}
+
+class CommandBuilding extends Building {
+	constructor(game){
+		super();
+		const _this = this;
+
+		if(game.buildings.find(
+			build => build instanceof CommandBuilding
+		)){
+			notif("ONLY ONE COMMAND BUILDING CAN BE BUILT");
+
+			this.fail = 1;
+			return undefined;
+		}
+
+		this.task = new Promise(async function(res){
+			let image = _this.image = new Image();
+			image.src = URL.createObjectURL(await (
+				await fetch("./exp/command.png")
+			).blob());
+
+			image.onload = res;
+		});
+
+		this.revenues = [];
+		this.seconds = 0;
+		this.on("second", function(game){
+			if(_this.hit)
+				return ;
+
+			_this.seconds++;
+
+			if(_this.seconds % 120 == 0){
+				_this.reportRevenue(game);
+			}
+		});
+
+		this.on("hit", function(game, bomb, pass){
+			if(_this.hit)
+				return game.deleteBuild(_this);
+
+			_this.hit = true;
+			const image = new Image();
+			image.src = "./exp/any-hit.png";
+			image.onload = function(){
+				_this.image = image;
+			}
+		});
+	}
+}
+CommandBuilding.cost = 500;
+CommandBuilding.prototype.reportRevenue = function(game){
+	const { revenues } = this;
+	revenues.unshift(game.balance);
+	function calc(n){ return ~~(revenues[0] - revenues[n]); }
+
+	if(revenues.length == 1){
+		notif("[ COMMAND / REPORT / REVENUE]");
+		notif(`${revenues[0]} + FIRST ---`);
+		notif(``);
+		notif(`[ / END ]`)
+	} else {
+		[
+			"[ COMMAND / REPORT / REVENUE]",
+			`BALANCE: ${revenues[0]}`,
+			`${calc(1)} + FROM LAST ---`,
+			`${calc(2)} + FROM 2 AGO --`,
+			`${calc(3)} + FROM 3 AGO --`,
+			`${calc(4)} + FROM 4 AGO --`,
+			`[ / END ]`,
+		].map(function(text, i){
+			setTimeout(() => notif(text), i*1000);
+		})
+	}
+}
+
+CommandBuilding.prototype.destroy = function(){
+	notif("[!] ATTENTION");
+	notif("COMMAND CENTER IS LOST.");
+	notif("MANAGEMENT SYSTEM WILL SUFFER");
+}
+
+class ResearchBuilding extends Building {
+
+}
+
+class ResidentBuilding extends Building {
+	constructor(){
+		super();
+		const _this = this;
+
+		this.task = new Promise(async function(res){
+			let image = _this.image = new Image();
+			image.src = URL.createObjectURL(await (
+				await fetch("./exp/resident.png")
+			).blob());
+
+			image.onload = res;
+		});
+
+		this.on("second", function(game){
+			_this.onSecond(game);
+		})
+
+		this.on("hit", function(game, bomb, pass){
+			if(_this.hit)
+				return game.deleteBuild(_this);
+
+			_this.hit = true;
+			const image = new Image();
+			image.src = "./exp/resident-hit.png";
+			image.onload = function(){
+				_this.image = image;
+			}
+		});
+	}
+}
+
+ResidentBuilding.prototype.onSecond = function(game){
+	if(this.hit)
+		return ;
+
+	game.balance = (~~((game.balance + 0.9) * 10))/10;
+}
+
+ResidentBuilding.cost = 100;
+
+class SelectorBuilding extends Building {
+	constructor(){
+		super();
+		const _this = this;
+
+		this.task = new Promise(async function(res){
+			let image = _this.image = new Image();
+			image.src = URL.createObjectURL(await (
+				await fetch("./exp/selected.png")
+			).blob());
+
+			image.onload = res;
+		});
+	}
+}
+
+class DeleteBuilding {
+	constructor(){
+		throw new Error("Don't instantiate this vro");
+	}
+}
+
+class MissileTrade extends Trade {
+	constructor(){
+		super(5);
+
+		const _this = this;
+		this.on("second", function(game){
+			if(game.balance < _this.cost)
+				return ;
+
+			if(missiles >= 20)
+				return ;
+
+			game.balance -= _this.cost;
+			missiles = Math.min(missiles + 1, 20);
+		});
+	}
 }
 
 /*
@@ -627,25 +1138,25 @@ async function main(){
 
 let v = 0.5;
 const alaunch = new Howl({
-	src: [ "launch.mp3" ],
+	src: [ "audio/launch.mp3" ],
 	autoplay: false,
 	loop: false,
 	volume: v
 });
 const aalarm = new Howl({
-	src: [ "alarm.mp3" ],
+	src: [ "audio/alarm.mp3" ],
 	autoplay: false,
 	loop: false,
 	volume: v
 });
 const aquake = new Howl({
-	src: [ "quake.mp3" ],
+	src: [ "audio/quake.mp3" ],
 	autoplay: false,
 	loop: false,
 	volume: v
 });
 const aexplosion = new Howl({
-	src: [ "explosion.wav" ],
+	src: [ "audio/explosion.wav" ],
 	autoplay: false,
 	loop: false,
 	volume: v*2

@@ -1,0 +1,241 @@
+* {
+	box-sizing: border-box;
+	overflow-x: hidden;
+	background-size: 100% 100%;
+}
+
+html, body {
+	overscroll-behavior: none;
+}
+
+body {
+	padding: 0px;
+	margin: 0px;
+	padding-top: 100vh;
+	position: relative;
+	background-color: black;
+
+	font-family: Black Ops One;
+	color: gray;
+
+	animation: none;
+	image-rendering: pixelated;
+}
+
+@keyframes quake {
+	0% {
+		transform: translateX(10px);
+	}
+	
+	50% {
+		transform: translateX(-10px);
+	}
+	
+	100% {
+		transform: translateX(0px);
+	}
+}
+
+@keyframes quake2 {
+	0% {
+		transform: translateX(10px);
+	}
+	
+	50% {
+		transform: translateX(-10px);
+	}
+	
+	100% {
+		transform: translateX(0px);
+	}
+}
+
+.quake-1 > * {
+	animation: quake 0.2s;
+	animation-repeat: 10;
+}
+
+.quake-2 > * {
+	animation: quake2 0.2s;
+	animation-repeat: 10;
+}
+
+.base, .status {
+	position: relative;
+	min-height: 50vh;
+	border-top: 1px solid gray;
+	background-image: url(./img/dashboard.png);
+	background-size: auto 100%;
+	z-index: 4;
+	padding: 0.4em;
+}
+
+.status {
+	position: fixed;
+	top: 0px;
+	min-height: 8vh;
+	width: 100%;
+	background-image: none;
+	background-size: 100% auto;
+	z-index: 1;
+}
+
+@keyframes cloud {
+	0% {
+		background-position: 0% var(--bg-y), 0% var(--bg2-y);
+	}
+
+	49% {
+		filter: invert(1);
+	}
+	
+	50% {
+		filter: invert(0.5);
+		background-position: 50% var(--bg-y), 200% var(--bg2-y);
+	}
+
+	55% {
+		filter: invert(1);
+	}
+
+	100% {
+		background-position: 100% var(--bg-y), 400% var(--bg2-y);
+	}
+}
+
+canvas.main, .city-canvas {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+
+	filter: invert(1);
+	z-index: 2;
+	background-image: url(./img/cloud.png), url(./img/cloud.png);
+	background-size: 128px 128px;
+	
+	--bg-y: 30%;
+	--bg2-y: 10%;
+	background-position: 0 10%, 0 30%;
+	background-repeat: repeat-x;
+	animation: cloud 100s infinite linear;
+}
+
+.balance::before {
+	display: inline-block;
+	width: 1.5em;
+	height: 2em;
+
+	content: '$';
+	line-height: 2em;
+}
+
+.missile {
+	line-height: 2em;
+}
+
+.missile::before {
+	display: inline-block;
+	width: 2em;
+	height: 2em;
+	content: " ";
+
+	filter: invert(1);
+	background-image: url(./img/missile.png);
+	background-size: 2em 2em;
+	vertical-align: middle;
+	opacity: 0.4;
+}
+
+button {
+	background-color: inherit;
+	border: 1px solid gray;
+	border-top-width: 1px;
+	border-bottom-width: 3px;
+	font-family: inherit;
+	width: 3em;
+	height: 3em;
+	display: inline-block;
+	vertical-align: top;
+	background-size: auto 100%;
+	filter: invert(0.6);
+}
+
+button.active, button:active {
+	border-top-width: 3px;
+	border-bottom-width: 1px;
+}
+
+button.active {
+	filter: invert(0.6) brightness(1.2);
+}
+
+.city {
+	transform: translateX(-50%);
+	left: 50%;
+	position: relative;
+	font-size: 0px;
+	z-index: 4;
+	overflow-x: scroll;
+	max-width: 100%;
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.city .slot {
+	display: inline-block;
+	width: 4rem;
+	height: 4rem;
+	margin: 0px;
+	border: 1px dashed rgba(255, 255, 255, 0.1);
+	white-space: pre;
+}
+
+.city.select .slot {
+
+}
+
+@keyframes notif0 {
+	0% {
+		opacity: 0.5;
+	}
+
+	90% {
+		opacity: 0,5;
+	}
+
+	100% {
+		opacity: 0.05;
+	}
+}
+
+@keyframes notif1 {
+	0% {
+		opacity: 0.5;
+	}
+
+	90% {
+		opacity: 0,5;
+	}
+
+	100% {
+		opacity: 0.05;
+	}
+}
+
+.notif {
+	position: fixed;
+	left: 5%;
+	top: 50%;
+	transform: translateY(-50%);
+	max-height: 50%;
+	padding-right: 5%;
+	overflow-y: scroll;
+	width: 100%;
+	text-align: right;
+	pointer-events: none;
+	opacity: 1;
+}
+
+.notif > * {
+	opacity: 0.05;
+}
