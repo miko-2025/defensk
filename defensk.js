@@ -740,7 +740,7 @@ function siege(diff, duration = 5000){
 
 async function main(){
 	//game.balance = 300;
-	game.balance = 3000;
+	game.balance = 300;
 	game.trade.push(new MissileTrade());
 
 	Building.scaffold = new Image();
@@ -909,9 +909,9 @@ async function main(){
 	window.addEventListener("mousemove", move);
 
 	setTimeout(function(){
-		siege(1000, 30000);
+		//siege(1000, 30000);
+		siege(0.5, 30000);
 	}, 3000)
-	//siege(0.5, 30000);
 	setInterval(function(){
 		siege(10, 10000);
 	}, 60000)
