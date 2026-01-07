@@ -1,4 +1,5 @@
-[DEFENSK](defensk.png)
+![DEFENSK](defensk.png)
+
 Build and defend your city in this click to shoot air defense game. Build
 residential buildings and increase balance, build command building for
 city administration, build research lab to upgrade your defense, build
