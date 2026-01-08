@@ -33,6 +33,8 @@ function render(){
 	maxX = window.innerWidth/scaleY;
 
 	const canvas = document.querySelector("canvas.main");
+	if(!canvas)
+		return {};
 	canvas.width = window.innerWidth/scaleX;
 	canvas.height = window.innerHeight/scaleY;
 	canvas.style.width = window.innerWidth;
@@ -40,6 +42,9 @@ function render(){
 
 
 	const canvas2 = document.querySelector(".city-canvas");
+	if(!canvas2)
+		return {};
+
 	canvas2.width = window.innerWidth*5;
 	canvas2.height = window.innerHeight*5;
 	canvas2.style.width = window.innerWidth;
@@ -112,6 +117,14 @@ class Game extends EventSystem {
 			_this.emit("resize");
 		});
 
+		if(document.readyState == "loading")
+			window.addEventListener("DOMContentLoaded", function(){
+				_this.onDCL();
+			})
+		else {
+			_this.onDCL();
+		}
+
 		this.explosions = [];
 		this.missiles = [];
 		this.bombs = [];
@@ -119,7 +132,17 @@ class Game extends EventSystem {
 		this.trade = [];
 
 		this.balance = 300;
+		this.ammo = 0;
+		this.started = 0;
 	}
+}
+
+Game.prototype.onDCL = function(){
+	this.dom = Object.fromEntries([
+		[ "missile", ".status .missile" ]
+	].map(e => [ e[0], document.querySelector(`${e[1]}`) ]))
+
+	this.dom.missile.textContent = this.ammo;
 }
 
 Game.prototype.getBuildFromXY = function(x, y){
@@ -515,7 +538,6 @@ let clientY = 30;
 let difficulty = 5;
 let last = 0;
 let last30 = 0;
-let missiles = 0;
 game.on("frame", function(){
 	if(!this.context)
 		return ;
@@ -628,10 +650,12 @@ game.on("fps12", function(){
 	}
 
 	if((Math.random() * 500) > 495 - (difficulty * 5)){
-		const bomb = game.dropBomb(-1, 8);
+		if(game.started){
+			const bomb = game.dropBomb(-1, 8);
+		}
 	}
 
-	document.querySelector(".missile").textContent = missiles;
+	document.querySelector(".missile").textContent = this.ammo;
 	this.context.save();
 	this.context.globalAlpha = 0.2;
 	this.context.fillRect(0, clientY, maxX, 1);
@@ -739,22 +763,26 @@ function siege(diff, duration = 5000){
 }
 
 async function main(){
-	//game.balance = 300;
-	game.balance = 300;
-	game.trade.push(new MissileTrade());
-
-	Building.scaffold = new Image();
-	Building.scaffold.src = "./exp/scaffold.png";
-
 	if(document.readyState == "loading"){
 		return window.addEventListener("DOMContentLoaded", main);
 	}
+
+	Building.scaffold = new Image();
+	Building.scaffold.src = "./exp/scaffold.png";
+	Object.assign(game, render());
+
+	highlight(document.querySelector("body"))
+	await tutorial(game);
+	game.started = 1;
+
+	//game.balance = 300;
+	game.balance = 300;
+	game.trade.push(new MissileTrade());
 
 	notif("DEFENSK v" + VERSION);
 
 	setInterval(function(){ game.emit("second"); }, 1000);
 
-	Object.assign(game, render());
 	new AbilityAutoDefense(game);
 
 	let pos = 0;
@@ -891,14 +919,14 @@ async function main(){
 		if(click.target.matches(".base, .base *, .city, .city *"))
 			return ;
 
-		if(missiles <= 0)
+		if(game.ammo <= 0)
 			return ;
 
 		clientX = (click.clientX/window.innerWidth) * maxX;
 		clientY = (click.clientY/window.innerHeight) * maxY;
 
 		const missile = game.launchMissile(clientX, clientY);
-		missiles--;
+		game.ammo--;
 	});
 
 	function move(mouse){
@@ -948,172 +976,6 @@ async function main(){
 	/*setInterval(function(){
 		notif(`${Date.now()}`);
 	}, 1000)*/
-}
-
-class CommandBuilding extends Building {
-	constructor(game){
-		super();
-		const _this = this;
-
-		if(game.buildings.find(
-			build => build instanceof CommandBuilding
-		)){
-			notif("ONLY ONE COMMAND BUILDING CAN BE BUILT");
-
-			this.fail = 1;
-			return undefined;
-		}
-
-		this.task = new Promise(async function(res){
-			let image = _this.image = new Image();
-			image.src = URL.createObjectURL(await (
-				await fetch("./exp/command.png")
-			).blob());
-
-			image.onload = res;
-		});
-
-		this.revenues = [];
-		this.seconds = 0;
-		this.on("second", function(game){
-			if(_this.hit)
-				return ;
-
-			_this.seconds++;
-
-			if(_this.seconds % 120 == 0){
-				_this.reportRevenue(game);
-			}
-		});
-
-		this.on("hit", function(game, bomb, pass){
-			if(_this.hit)
-				return game.deleteBuild(_this);
-
-			_this.hit = true;
-			const image = new Image();
-			image.src = "./exp/any-hit.png";
-			image.onload = function(){
-				_this.image = image;
-			}
-		});
-	}
-}
-CommandBuilding.cost = 500;
-CommandBuilding.prototype.reportRevenue = function(game){
-	const { revenues } = this;
-	revenues.unshift(game.balance);
-	function calc(n){ return ~~(revenues[0] - revenues[n]); }
-
-	if(revenues.length == 1){
-		notif("[ COMMAND / REPORT / REVENUE]");
-		notif(`${revenues[0]} + FIRST ---`);
-		notif(``);
-		notif(`[ / END ]`)
-	} else {
-		[
-			"[ COMMAND / REPORT / REVENUE]",
-			`BALANCE: ${revenues[0]}`,
-			`${calc(1)} + FROM LAST ---`,
-			`${calc(2)} + FROM 2 AGO --`,
-			`${calc(3)} + FROM 3 AGO --`,
-			`${calc(4)} + FROM 4 AGO --`,
-			`[ / END ]`,
-		].map(function(text, i){
-			setTimeout(() => notif(text), i*1000);
-		})
-	}
-}
-
-CommandBuilding.prototype.destroy = function(){
-	notif("[!] ATTENTION");
-	notif("COMMAND CENTER IS LOST.");
-	notif("MANAGEMENT SYSTEM WILL SUFFER");
-}
-
-class ResearchBuilding extends Building {
-
-}
-
-class ResidentBuilding extends Building {
-	constructor(){
-		super();
-		const _this = this;
-
-		this.task = new Promise(async function(res){
-			let image = _this.image = new Image();
-			image.src = URL.createObjectURL(await (
-				await fetch("./exp/resident.png")
-			).blob());
-
-			image.onload = res;
-		});
-
-		this.on("second", function(game){
-			_this.onSecond(game);
-		})
-
-		this.on("hit", function(game, bomb, pass){
-			if(_this.hit)
-				return game.deleteBuild(_this);
-
-			_this.hit = true;
-			const image = new Image();
-			image.src = "./exp/resident-hit.png";
-			image.onload = function(){
-				_this.image = image;
-			}
-		});
-	}
-}
-
-ResidentBuilding.prototype.onSecond = function(game){
-	if(this.hit)
-		return ;
-
-	game.balance = (~~((game.balance + 0.9) * 10))/10;
-}
-
-ResidentBuilding.cost = 100;
-
-class SelectorBuilding extends Building {
-	constructor(){
-		super();
-		const _this = this;
-
-		this.task = new Promise(async function(res){
-			let image = _this.image = new Image();
-			image.src = URL.createObjectURL(await (
-				await fetch("./exp/selected.png")
-			).blob());
-
-			image.onload = res;
-		});
-	}
-}
-
-class DeleteBuilding {
-	constructor(){
-		throw new Error("Don't instantiate this vro");
-	}
-}
-
-class MissileTrade extends Trade {
-	constructor(){
-		super(5);
-
-		const _this = this;
-		this.on("second", function(game){
-			if(game.balance < _this.cost)
-				return ;
-
-			if(missiles >= 20)
-				return ;
-
-			game.balance -= _this.cost;
-			missiles = Math.min(missiles + 1, 20);
-		});
-	}
 }
 
 /*
