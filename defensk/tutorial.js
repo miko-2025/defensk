@@ -61,10 +61,10 @@ async function tutorial(game){
 	click = await uwait.click();
 	game.ammo = 0;
 	prompt(" ");
-	clientX = (click.clientX/window.innerWidth) * maxX;
-	clientY = (click.clientY/window.innerHeight) * maxY;
+	game.clientX = (click.clientX/window.innerWidth) * maxX;
+	game.clientY = (click.clientY/window.innerHeight) * maxY;
 
-	missile = game.launchMissile(clientX, clientY);
+	missile = game.launchMissile(game.clientX, game.clientY);
 	await new Promise(res => {
 		missile.on("destroy", res);
 	})
@@ -100,9 +100,9 @@ async function tutorial(game){
 		if(game.ammo <= 0)
 			continue ;
 
-		clientX = (click.clientX/window.innerWidth) * maxX;
-		clientY = (click.clientY/window.innerHeight) * maxY;
-		missile = game.launchMissile(clientX, clientY);
+		game.clientX = (click.clientX/window.innerWidth) * maxX;
+		game.clientY = (click.clientY/window.innerHeight) * maxY;
+		missile = game.launchMissile(game.clientX, game.clientY);
 		game.ammo--;
 	}
 
@@ -121,9 +121,9 @@ async function tutorial(game){
 		if(game.ammo <= 0)
 			continue ;
 
-		clientX = (click.clientX/window.innerWidth) * maxX;
-		clientY = (click.clientY/window.innerHeight) * maxY;
-		missile = game.launchMissile(clientX, clientY);
+		game.clientX = (click.clientX/window.innerWidth) * maxX;
+		game.clientY = (click.clientY/window.innerHeight) * maxY;
+		missile = game.launchMissile(game.clientX, game.clientY);
 		game.ammo--;
 	}
 

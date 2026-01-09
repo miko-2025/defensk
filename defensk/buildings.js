@@ -1,3 +1,8 @@
+Building.prototype.interface = {
+	"div:right": {
+		"button:fix:action-fix": "Fix"
+	}
+}
 
 class CommandBuilding extends Building {
 	constructor(game){
@@ -15,6 +20,7 @@ class CommandBuilding extends Building {
 
 		this.task = new Promise(async function(res){
 			let image = _this.image = new Image();
+			_this.imageOk = image;
 			image.src = URL.createObjectURL(await (
 				await fetch("./exp/command.png")
 			).blob());
@@ -27,6 +33,8 @@ class CommandBuilding extends Building {
 		this.on("second", function(game){
 			if(_this.hit)
 				return ;
+
+			_this.image = _this.imageOk;
 
 			_this.seconds++;
 
@@ -91,6 +99,7 @@ class ResidentBuilding extends Building {
 
 		this.task = new Promise(async function(res){
 			let image = _this.image = new Image();
+			_this.imageOk = image;
 			image.src = URL.createObjectURL(await (
 				await fetch("./exp/resident.png")
 			).blob());
@@ -121,6 +130,7 @@ ResidentBuilding.prototype.onSecond = function(game){
 		return ;
 
 	game.balance = (~~((game.balance + 0.9) * 10))/10;
+	this.image = this.imageOk;
 }
 
 ResidentBuilding.cost = 100;
@@ -132,6 +142,7 @@ class SelectorBuilding extends Building {
 
 		this.task = new Promise(async function(res){
 			let image = _this.image = new Image();
+			_this.imageOk = image;
 			image.src = URL.createObjectURL(await (
 				await fetch("./exp/selected.png")
 			).blob());

@@ -118,6 +118,20 @@ canvas.main, .city-canvas {
 	background-position: 0 10%, 0 30%;
 	background-repeat: repeat-x;
 	animation: cloud 100s infinite linear;
+	z-index: -1;
+}
+
+.city-canvas {
+	position: fixed;
+	animation: none;
+	background-image: none;
+	position: absolute;
+	width: 40rem;
+	height: 40rem;
+	top: 100%;
+	transform: translateY(-100%);
+	z-index: 2;
+	pointer-events: none;
 }
 
 .balance::before {
@@ -179,6 +193,8 @@ button.active {
 	max-width: 100%;
 	display: inline-block;
 	white-space: nowrap;
+	max-height: 40rem;
+	overflow-y: hidden;
 }
 
 .city .slot {
@@ -344,3 +360,34 @@ button.active {
 	--min-r: 500%;
 	transform: translate(30vh, 30vw) scale(1.2);
 }
+
+*::-webkit-scrollbar {
+	width: 12px;
+	background-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.2);
+	border-radius: 6px;
+}
+
+*::-webkit-scrollbar-track {
+	background-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(0, 0, 0, 0.4);
+}
+
+.moonsole {
+	max-width: 80vw;
+	word-break: break-all;
+}
+
+.interface .right {
+	position: relative;
+	left: 99%;
+	display: inline-block;
+	transform: translateX(-100%);
+}
+

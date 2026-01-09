@@ -1,4 +1,8 @@
-const VERSION = "0.0.3";
+function settings(key){
+	return "ultra";
+}
+
+const VERSION = "0.0.5";
 let Defensk = null;
 let defensk = null;
 
@@ -24,7 +28,38 @@ let scaleY = scaleX;
 let maxY = window.innerHeight/scaleX;
 let maxX = window.innerWidth/scaleY;
 
+let bScaleX = 1;
+let bScaleY = 1;
+
 function render(){
+	if((window.innerWidth < 1000) || (window.innerHeight < 1000)){
+		bScaleX = (1000 - window.innerWidth) / 1000;
+		bScaleY = (1000 - window.innerHeight) / 1000;
+
+		bScaleX *= 1.5;
+		bScaleY *= 1.5;
+
+		bScaleX *= 1.5;
+		bScaleY *= 1.5;
+
+		if([ "ultra", "medium", "high" ]
+			.includes(settings("graphics"))
+		){
+			bScaleX *= 1.5;
+			bScaleY *= 1.5;
+		}
+
+		if([ "ultra", "high" ].includes(settings("graphics"))){
+			bScaleX *= 3;
+			bScaleY *= 3;
+		}
+
+		if([ "ultra" ].includes(settings("graphics"))){
+			bScaleX *= 3;
+			bScaleY *= 3;
+		}
+	}
+
 	scaleX = Math.max(
 		Math.min((window.innerWidth/480), (window.innerHeight/720)), 1
 	);
@@ -45,10 +80,14 @@ function render(){
 	if(!canvas2)
 		return {};
 
-	canvas2.width = window.innerWidth*5;
-	canvas2.height = window.innerHeight*5;
-	canvas2.style.width = window.innerWidth;
-	canvas2.style.height = window.innerHeight;
+	/*canvas2.width = window.innerWidth*bScaleX;
+	canvas2.height = window.innerHeight*bScaleY;*/
+	/*canvas2.style.width = window.innerWidth;
+	canvas2.style.height = window.innerHeight;*/
+
+	const c2r = canvas2.getBoundingClientRect();
+	canvas2.width = (c2r.right - c2r.left)*3;
+	canvas2.height = (c2r.bottom - c2r.top)*3;
 
 	const context = canvas.getContext("2d");
 	const context2 = canvas2.getContext("2d");
@@ -93,153 +132,6 @@ Spline.prototype.destroy = function(){
 	defensk.free(this.cptr);
 	defensk.spline_free(this.spline);
 }
-
-class Game extends EventSystem {
-	constructor(){
-		super();
-		const _this = this;
-		requestAnimationFrame(function f(){
-			_this.emit("frame");
-
-			requestAnimationFrame(f);
-		});
-
-		window.addEventListener("resize", function f(){
-			if(window.readyState == "loading"){
-				return window.addEventListener(
-					"DOMContentLoaded",
-					f
-				);
-			}
-
-			Object.assign(this, render());
-
-			_this.emit("resize");
-		});
-
-		if(document.readyState == "loading")
-			window.addEventListener("DOMContentLoaded", function(){
-				_this.onDCL();
-			})
-		else {
-			_this.onDCL();
-		}
-
-		this.explosions = [];
-		this.missiles = [];
-		this.bombs = [];
-		this.buildings = [];
-		this.trade = [];
-
-		this.balance = 300;
-		this.ammo = 0;
-		this.started = 0;
-	}
-}
-
-Game.prototype.onDCL = function(){
-	this.dom = Object.fromEntries([
-		[ "missile", ".status .missile" ]
-	].map(e => [ e[0], document.querySelector(`${e[1]}`) ]))
-
-	this.dom.missile.textContent = this.ammo;
-}
-
-Game.prototype.getBuildFromXY = function(x, y){
-	x = Number(x);
-	y = Number(y);
-	return this.buildings[x + (y * 10)];
-}
-
-Game.prototype.deleteBuildFromXY = function(x, y){
-	x = Number(x);
-	y = Number(y);
-
-	const build = this.getBuildFromXY(x, y);
-	if(build.deleting)
-		return ;
-
-	build.deleting = 1;
-	let res;
-	const ret = new Promise(function(rs, rej){
-		res = rs;
-	});
-
-	build.emit("delete", function(){ res(); });
-	this.buildings[x + (y * 10)] = null;
-
-	return ret;
-}
-
-Game.prototype.deleteBuild = function(build){
-	this.buildings[this.buildings.indexOf(build)] = null;
-}
-
-Game.prototype.launchMissile = function(...param){
-	const game = this;
-	const missile = new Missile(
-		Math.random()*maxX, maxY,
-		...param
-	);
-	missile.destroy = function(){
-		this.spline.destroy();
-		this.emit("destroy");
-		game.missiles.splice(game.missiles.indexOf(this), 1);
-	}
-	this.missiles.push(missile);
-	this.emit("launch", missile);
-
-	return missile;
-}
-
-Game.prototype.dropBomb = function(x, speed){
-	if(x < 0){
-		x = Math.random()*maxX;
-	}
-
-	const game = this;
-	const bomb = new Bomb(
-		x, speed
-	);
-
-	bomb.destroy = function(){
-		this.emit("destroy");
-		game.bombs.splice(game.bombs.indexOf(this), 1);
-
-		//alert([ this.y, maxY * (95/100)]); 
-		if(this.y > (maxY * (95/100))){
-			const list = document.body.classList;
-			if(list.contains("quake-1")){
-				list.remove("quake-1");
-				list.add("quake-2");
-
-				return ;
-			}
-
-			list.remove("quake-2");
-			list.add("quake-1");
-		}
-	}
-	this.bombs.push(bomb);
-	this.emit("drop", bomb);
-
-	return bomb;
-}
-
-Object.defineProperties(Game.prototype, {
-	balance: {
-		get(){
-			return this._balance || 0;
-		},
-
-		set(x){
-			this._balance = x;
-			const display = document.querySelector(".balance");
-			if(display)
-				display.textContent = `${x}`;
-		}
-	}
-});
 
 class Explosion {
 	constructor(x, y, r){
@@ -369,6 +261,7 @@ class Bomb extends EventSystem {
 
 		this.progress = 0;
 		this.speed = (speed || (1 + Math.random()))/20;
+		this.color = "black";
 		this.x = x;
 	}
 }
@@ -388,19 +281,24 @@ Bomb.prototype.draw = function(game, phase){
 	if(this.progress >= 100)
 		return this.destroy && this.destroy();
 
+	game.context.save();
+	game.context.fillStyle = this.color || "black";
 	if(phase == 2){
 		game.context.fillRect(this.x, y - 10, 1, 9);
+		game.context.restore();
 
 		return ;
 	}
 
 	if(phase == 3){
 		game.context.fillRect(this.x, y - 33, 1, 33);
+		game.context.restore();
 
 		return ;
 	}
 
 	game.context.fillRect(this.x - 1, y, 3, 3);
+	game.context.restore();
 }
 
 class Building extends EventSystem {
@@ -410,8 +308,29 @@ class Building extends EventSystem {
 		this.width = 0;
 		this.height = 0;
 		this.occupies = [];
+		this.durability = 0;
+		this.hideFix = 0;
+		this.fixDuration = 1000;
 
 		this.on("second", Building.onSecond);
+		this.on("click", Building.onClickDefault);
+		this.images = [];
+	}
+}
+
+Building.onClickDefault = function(click, game){
+	if(click.target.matches(".action-fix, .action-fix *")){
+		if(!this.hit)
+			return ;
+
+		const cost = this.fixCost || (this.constructor.cost/2) || 0;
+		if(cost > game.balance){
+			notif("[!] INSUFFICIENT FUNDS TO FIX");
+
+			return ;
+		}
+
+		this.fix();
 	}
 }
 
@@ -425,6 +344,27 @@ Building.onSecond = function(){
 		else
 			this.images = [ Building.scaffold ];
 	}
+}
+
+Building.prototype.fix = function(){
+	if(this.fixing)
+		return ;
+
+	const _this = this;
+	this.fixing = true;
+	if(!_this.hideFix){
+		_this.images.push(Building.fixing);
+	}
+
+	setTimeout(function(){
+		_this.hit = false;
+		_this.fixing = false;
+		let index = _this.images.indexOf(Building.fixing);
+		index >= 0 && _this.images.splice(index, 1);
+		index = _this.images.indexOf(Building.scaffolding);
+		index >= 0 && _this.images.splice(index, 1);
+		_this.emit("fix");
+	}, this.fixDuration || 3000)
 }
 
 /*
@@ -500,6 +440,17 @@ Building.prototype.draw = function(game){
 			.getBoundingClientRect()
 		;
 
+		/*top = top*bScaleY;
+		left = left*bScaleX;
+		right = right*bScaleX;
+		bottom = bottom*bScaleY;*/
+
+		top = (game.canvas2.height/10)*y,
+		left = (game.canvas2.width/10)*x
+
+		bottom = top + (game.canvas2.height/10);
+		right = left + (game.canvas2.width/10);
+
 		/*
 		top = (top/window.innerHeight) * maxY;
 		left = (left/window.innerWidth) * maxX;
@@ -509,14 +460,18 @@ Building.prototype.draw = function(game){
 		/*game.context.fillRect(top, left, 30, 30);*/
 
 		this.image && context.drawImage(this.image,
-			left*5, top*5, right*5 - left*5, bottom*5 - top*5
+			left, top,
+			right - left,
+			bottom - top
 		)
 
 		if(this.images){
 			for(const image of this.images){
 				context.drawImage(image,
-					left*5, top*5, right*5 - left*5,
-					bottom*5 - top*5
+					left,
+					top,
+					right - left,
+					bottom - top
 				);
 			}
 		}
@@ -532,170 +487,6 @@ class Trade extends EventSystem  {
 }
 
 const game = new Game();
-let clientX = 30;
-let clientY = 30;
-
-let difficulty = 5;
-let last = 0;
-let last30 = 0;
-game.on("frame", function(){
-	if(!this.context)
-		return ;
-
-	this.context2.clearRect(0, 0, this.canvas.width*5, this.canvas.height*5);
-	for(const build of this.buildings){
-		if(build)
-			build.draw(this);
-	}
-
-	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	this.context.globalAlpha = 1;
-	this.context.save();
-	for(const missile of this.missiles){
-		missile.draw(this);
-	}
-
-	this.context.globalAlpha = 0.3;
-	for(const missile of this.missiles){
-		missile.draw(this, 2);
-	}
-
-	this.context.restore();
-	this.context.globalAlpha = 0.05;
-	for(const explosion of this.explosions){
-		if(explosion.progress > 30)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		if(explosion.progress > 50)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		if(explosion.progress > 90)
-			continue ;
-
-		explosion.draw(this);
-	}
-
-	for(const explosion of this.explosions){
-		explosion.draw(this);
-	}
-
-	this.context.restore();
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 0.05;
-		bomb.draw(this, 3);
-	}
-
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 0.2;
-		bomb.draw(this, 2);
-	}
-
-	for(const bomb of this.bombs){
-		this.context.globalAlpha = 1;
-		bomb.draw(this);
-	}
-
-	this.context.restore();
-
-	const now = Date.now();
-	if((last + (1000/12)) < now){
-		game.emit("fps12");
-
-		last = now;
-	}
-
-	if((last + (1000/30)) < now){
-		game.emit("fps30");
-
-		last30 = now;
-	}
-
-	this.context.restore();
-});
-
-game.on("fps30", function(){
-	for(const missile of this.missiles){
-		missile.progress += Math.max(
-			(Math.max(missile.speed || 4, 1)
-				* (missile.destY/maxY)), 1
-		);
-	}
-
-	for(const bomb of this.bombs){
-		bomb.progress += bomb.speed;
-	}
-
-	for(const explosion of this.explosions){
-		explosion.progress +=
-			((10 - Math.max(explosion.progress/100, 1)))/2;
-	}
-});
-
-
-game.on("fps12", function(){
-	for(const missile of this.missiles){
-
-	}
-
-	for(const bomb of this.bombs){
-
-	}
-
-	if((Math.random() * 500) > 495 - (difficulty * 5)){
-		if(game.started){
-			const bomb = game.dropBomb(-1, 8);
-		}
-	}
-
-	document.querySelector(".missile").textContent = this.ammo;
-	this.context.save();
-	this.context.globalAlpha = 0.2;
-	this.context.fillRect(0, clientY, maxX, 1);
-	this.context.fillRect(clientX, 0, 1, maxY);
-	this.context.restore();
-});
-
-game.on("second", function(){
-	for(const building of this.buildings){
-		building && building.emit("second", this);
-	}
-
-	for(const trade of this.trade){
-		trade && trade.emit("second", this);
-	}
-});
-
-game.on("drop", function(bomb){
-	const _this = this;
-	bomb.on("destroy", function(){
-		if(bomb.progress >= 99){
-			const x = (bomb.x/maxX) * 10;
-			_this.emit("hit", bomb);
-
-			notif(`/\/ IMPACT/${~~(x)} /\/`);
-		}
-	});
-});
-
-game.on("hit", function(bomb){
-	const x = ~~((bomb.x/maxX) * 10);
-	const y = Building.rooftop(this, x, 0) + 1;
-	const build = this.getBuildFromXY(x, y);
-
-	if(!build)
-		return ;
-
-	//notif(`HIT BUILDING: ${x} / ${y}`);
-	build.emit("hit", this, bomb);
-});
 
 // AUTO DEFENSE SYSTEM //
 class AbilityAutoDefense {
@@ -747,9 +538,9 @@ function notif(message){
 	;
 }
 
-function siege(diff, duration = 5000){
-	let last = difficulty;
-	difficutly = diff;
+function siege(game, diff, duration = 5000){
+	let last = game.difficulty;
+	game.difficulty = diff;
 	if(diff < 5)
 	 	notif("CAUTION: ENEMY UNITS DETECTED");
 	else
@@ -758,8 +549,26 @@ function siege(diff, duration = 5000){
 
 	setTimeout(function(){
 		notif("\/\/\/ LOGGED REDUCED ENEMY PRESENCE \/\/\/");
-		difficulty = last;
+		game.difficulty = last;
 	}, duration);
+}
+
+function interface(data, target){
+	const int = target || document.querySelector(".base .interface");
+	int.textContent = '';
+
+	for(const [ key, value ] of Object.entries(data)){
+		const [ tag, ...cls ] = key.split(':');
+		const el = document.createElement(tag);
+		el.classList.add(...cls);
+		if(value instanceof Object){
+			interface(value, el);
+		} else {
+			el.textContent = value;
+		}
+
+		int.appendChild(el);
+	}
 }
 
 async function main(){
@@ -767,12 +576,18 @@ async function main(){
 		return window.addEventListener("DOMContentLoaded", main);
 	}
 
+	Object.assign(game, render());
+	if(isSecondary())
+		return ;
+
 	Building.scaffold = new Image();
 	Building.scaffold.src = "./exp/scaffold.png";
-	Object.assign(game, render());
+
+	Building.fixing = new Image();
+	Building.fixing.src = "./icon/fix.png";
 
 	highlight(document.querySelector("body"))
-	await tutorial(game);
+	//await tutorial(game);
 	game.started = 1;
 
 	//game.balance = 300;
@@ -784,6 +599,10 @@ async function main(){
 	setInterval(function(){ game.emit("second"); }, 1000);
 
 	new AbilityAutoDefense(game);
+
+	setTimeout(function(){
+		Object.assign(game, render());
+	}, 2000)
 
 	let pos = 0;
 	const { context } = render();
@@ -811,6 +630,50 @@ async function main(){
 
 	let SelectedBuildType = null;
 	let builderLock = 0;
+	window.addEventListener("click", async function(click){
+		if(!click.target.matches(".interface *"))
+			return ;
+
+		const slotXY = document.querySelector(`.interface .slot`);
+		const [ x, y ] = Building.getXYFromSlot(slotXY);
+		const build = game.getBuildFromXY(x, y);
+
+		if(!build)
+			throw new Error("PCorruption: build is undefined");
+
+		build.emit("click", click, game);
+	});
+	window.addEventListener("click", async function(click){
+		if(!click.target.matches(".city *"))
+			return ;
+
+		if(SelectedBuildType)
+			return ;
+
+		const [ x, y ] = Building.getXYFromSlot(click.target);
+		const build = game.getBuildFromXY(x, y);
+		const int = document.querySelector(".base .interface");
+
+		if(!build)
+			return ;
+
+		if(build.interface){
+			if(build.interface instanceof Function){
+				build.interface();
+			} else if(build.interface instanceof Object){
+				interface(Object.assign({
+					[`div:slot:x${x}:y${y}`]: "",
+					"div:name": build.name
+						|| build.constructor.name
+				}, build.interface));
+			}
+		} else {
+			interface({
+				"div:name": build.name || build.constructor.name
+			});
+		}
+	})
+
 	window.addEventListener("click", async function(click){
 		if(builderLock)
 			return ;
@@ -910,6 +773,10 @@ async function main(){
 			.querySelectorAll("*")
 		) el.classList.remove("active");
 
+		const selection = buildTypes[click.target.classList[0]];
+		if(SelectedBuildType == selection)
+			return SelectedBuildType = null;
+
 		click.target.classList.add("active");
 		SelectedBuildType = buildTypes[click.target.classList[0]];
 		//alert(selectedBuildType = click.target.classList[0])
@@ -922,8 +789,8 @@ async function main(){
 		if(game.ammo <= 0)
 			return ;
 
-		clientX = (click.clientX/window.innerWidth) * maxX;
-		clientY = (click.clientY/window.innerHeight) * maxY;
+		game.clientX = (click.clientX/window.innerWidth) * maxX;
+		game.clientY = (click.clientY/window.innerHeight) * maxY;
 
 		const missile = game.launchMissile(clientX, clientY);
 		game.ammo--;
@@ -938,10 +805,10 @@ async function main(){
 
 	setTimeout(function(){
 		//siege(1000, 30000);
-		siege(0.5, 30000);
+		siege(game, 0.5, 30000);
 	}, 3000)
 	setInterval(function(){
-		siege(10, 10000);
+		siege(game, 10, 10000);
 	}, 60000)
 
 	/*let build = new CommandBuilding();
@@ -976,6 +843,33 @@ async function main(){
 	/*setInterval(function(){
 		notif(`${Date.now()}`);
 	}, 1000)*/
+}
+
+
+class ClusterBomb extends Bomb {
+	constructor(...args){
+		super(...args);
+
+		const _this = this;
+		const max = ~~(Math.random()*5);
+
+		this.color = "blue";
+		this.on("destroy", function(){
+			for(let i = 0; i < max; i++){
+				const shift = i * maxX*0.05;
+				const bomb = game.dropBomb(
+					(_this.x - ((max*maxX*0.05)/2))
+						+ shift,
+					_this.speed
+				);
+
+				bomb.speed = ((_this.speed - (_this.speed/2))
+					+ (Math.random()*(_this.speed/2))
+				);
+				bomb.progress = _this.progress;
+			}
+		});
+	}
 }
 
 /*

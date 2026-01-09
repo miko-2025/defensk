@@ -1,0 +1,147 @@
+.docs {
+	margin-top: 3em;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: fit-content;
+	--type-color: #AFAFDF;
+	--keyword-color: #AFFFBF;
+	--notice-color: #D0BEAF;
+	z-index: 100;
+	color: white;
+}
+
+.sections {
+	border: 1px solid gray;
+	margin: 1em;
+	padding: 0.2em;
+}
+
+a {
+	color: var(--keyword-color);
+}
+
+* {
+	white-space: nowrap;
+}
+
+.Class {
+	padding: 0.2em;
+	margin: 0.2em;
+	max-width: 100%;
+	overflow-x: scroll;
+}
+
+.Class > * {
+	display: inline-block;
+	vertical-align: top;
+}
+
+.Class > .name {
+	color: var(--type-color);
+	font-size: 1.2em;
+}
+
+.Class > .name::before {
+	content: "class";
+	color: var(--keyword-color);
+	margin-right: 0.5em;
+	font-size: 0.8em;
+	vertical-align: bottom;
+}
+
+.arguments::before {
+	vertical-align: top;
+	content: "(";
+}
+
+.arguments::after {
+	vertical-align: top;
+	content: ")";
+}
+
+.arguments > * {
+	display: inline-block;
+}
+
+.argument > .type {
+	color: var(--type-color);
+	font-size: 1.2em;
+}
+
+.argument > * {
+	display: inline-block;
+}
+
+.argument > .type {
+}
+
+.argument > .description {
+	font-size: 0px;
+}
+
+.argument::after {
+	content: ', ';
+	vertical-align: middle;
+}
+
+.argument:last-child::after {
+	content: '';
+}
+
+.property {
+	display: table;
+	margin-left: 1em;
+	border-left: 1px solid gray;
+	padding-left: 1em;
+}
+
+.property::before {
+
+}
+
+.property > * {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.property > .type {
+	color: var(--type-color);
+	margin-right: 0.5em;
+}
+
+.property > .description {
+	display: none;
+}
+
+.property.readonly > .name::after {
+	display: inline-block;
+	content: "readonly";
+	font-size: 0.7em;
+	vertical-align: top;
+	margin-left: 1em;
+	border: 1px solid var(--keyword-color);
+	color: var(--notice-color);
+	padding-left: 0.2em;
+	padding-right: 0.2em;
+}
+
+.extends {
+	color: var(--type-color);
+	vertical-align: top;
+}
+
+.extends::before {
+	color: var(--keyword-color);
+	content: "extends";
+	margin-left: 0.4em;
+	margin-right: 0.4em;
+
+	vertical-align: bottom;
+	font-size: 0.8em;
+}
+
+.docs h2 {
+	text-align: center;
+}

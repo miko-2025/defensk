@@ -15,6 +15,7 @@
 		<script src="rote/howler.js"></script>
 		<script src="rote/trail.js"></script>
 		<script src="defensk.c.js"></script>
+		<script src="defensk/game.js"></script>
 		<script src="defensk.js"></script>
 		<script src="defensk/buildings.js"></script>
 		<script src="defensk/trade.js"></script>
@@ -41,9 +42,10 @@
 		</div>
 		<div class="main-container">
 			<canvas class="main"></canvas>
+		</div>
+		<div class="city">
 			<canvas class="city-canvas"></canvas>
 		</div>
-		<div class="city"></div>
 		<script>
 			const city = document.querySelector(".city");
 			for(let i = 0; i < 100; i++){
@@ -65,10 +67,14 @@
 			<div class="builds">
 
 			</div>
+			<div class="interface">
+
+			</div>
+			<!--
 			<div class="ability">
 				<div class="name">AUTO_DEFENSE</div>
 				<div class="level">5</div>
-			</div>
+			</div>-->
 		</div>
 	</body>
 </html>

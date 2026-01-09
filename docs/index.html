@@ -1,0 +1,341 @@
+<html>
+	<head>
+		<style>
+			body {
+				position: relative;
+				background-color: black;
+
+				color: gray;
+			}
+
+			.base, .city {
+				display: none;
+				opacity: 0;
+			}
+		</style>
+		<meta name="theme-color" content="#161616" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<script src="rote/moonsole.js"></script>
+		<script src="rote/event-system.js"></script>
+		<script src="rote/howler.js"></script>
+		<script src="rote/trail.js"></script>
+		<script src="../defensk.c.js"></script>
+		<script src="../defensk.js"></script>
+		<script src="../defensk/buildings.js"></script>
+		<script src="../defensk/trade.js"></script>
+		<script src="../defensk/tutorial.js"></script>
+		<link rel="icon" type="image/x-icon" href="img/missile.png" />
+		<link rel="stylesheet" href="../defensk.css" />
+		<link rel="stylesheet" href="./docs.css" />
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<div class="highlight"></div>
+		<div class="prompt"></div>
+		<div class="background">
+			<div class="slot"></div>
+			<div class="slot s2"></div>
+			<div class="slot s3"></div>
+		</div>
+		<div class="status">
+			<div>DEFENSK // DOCS</div>
+		</div>
+		<div class="notif">
+		</div>
+		<div class="main-container">
+			<canvas class="main"></canvas>
+			<canvas class="city-canvas"></canvas>
+		</div>
+		<div class="city"></div>
+		<script>
+			const city = document.querySelector(".city");
+			for(let i = 0; i < 100; i++){
+				const slot = document.createElement("div");
+				slot.classList.add("slot",
+					`x${i % 10}`, `y${~~(i / 10)}`);
+
+				if((i % 10) == 0){
+					if(i > 0)
+						city.appendChild(document
+							.createElement("br")
+						);
+				}
+
+				city.appendChild(slot);
+			}
+		</script>
+		<div class="base">
+			<div class="builds">
+
+			</div>
+			<div class="ability">
+				<div class="name">AUTO_DEFENSE</div>
+				<div class="level">5</div>
+			</div>
+		</div>
+		<div class="docs">
+			<ul class="sections">
+				<li>
+					<ul>
+						<li><a href="#new-building-type">
+							Adding a new Building type
+						</a></li>
+					</ul>
+				</li>
+			</ul>
+			<h2>References</h2>
+			<div class="Class">
+				<div class="name">Bomb</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">x</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">speed</div>
+					</div>
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						progress
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						speed
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						x
+					</div>
+				</div>
+				<div class="property readonly">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						y
+					</div>
+				</div>
+			</div>
+			<div class="Class">
+				<div class="name">Missile</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">startX</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">startY</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">endX</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">endY</div>
+					</div>
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						destX
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						destY
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Array&lt;Number&gt;
+					</div>
+					<div class="name">
+						coords
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Spline
+					</div>
+					<div class="name">
+						spline
+					</div>
+				</div>
+			</div>
+			<div class="Class">
+				<div class="name">Explosion</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">x</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">y</div>
+					</div>
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">r</div>
+					</div>
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						x
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						y
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						r
+					</div>
+				</div>
+			</div>
+			<div class="Class">
+				<div class="name">Building</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Array&lt;Array&lt;Number&gt;&gt;
+					</div>
+					<div class="name">
+						occupies
+					</div>
+				</div>
+			</div>
+			<div class="Class">
+				<div class="name">Trade</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+					<div class="argument">
+						<div class="type">Number</div>
+						<div class="name">price</div>
+					</div>
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						price
+					</div>
+				</div>
+			</div>
+			<div class="Class">
+				<div class="name">Game</div>
+				<div class="extends">EventSystem</div>
+				<div class="arguments">
+				</div>
+				<br />
+				<div class="property">
+					<div class="type">
+						Array&lt;Explosion&gt;
+					</div>
+					<div class="name">
+						explosions
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Array&lt;Missile&gt;
+					</div>
+					<div class="name">
+						missiles
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Array&lt;Bomb&gt;
+					</div>
+					<div class="name">
+						bombs
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Array&lt;Building&gt;
+					</div>
+					<div class="name">
+						buildings
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Array&lt;Trade&gt;
+					</div>
+					<div class="name">
+						trade
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						balance
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						ammo
+					</div>
+				</div>
+				<div class="property">
+					<div class="type">
+						Number
+					</div>
+					<div class="name">
+						started
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
