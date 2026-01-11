@@ -1,8 +1,19 @@
 function settings(key){
+	let def = null;
+	const usp = new URLSearchParams(window.location.search);
+	if(key == "graphics"){
+		def = "ultra"
+	}
+	else if(key == "tutorial"){
+		def = "true"
+	}
+
+	return usp.get(key) || def;
+
 	return "ultra";
 }
 
-const VERSION = "0.0.5";
+const VERSION = "0.0.7";
 let Defensk = null;
 let defensk = null;
 
@@ -301,6 +312,7 @@ Bomb.prototype.draw = function(game, phase){
 	game.context.restore();
 }
 
+let SelectedBuildType = null;
 class Building extends EventSystem {
 	constructor(){
 		super();
@@ -330,7 +342,43 @@ Building.onClickDefault = function(click, game){
 			return ;
 		}
 
+		game.balance -= cost;
 		this.fix();
+	}
+
+	if(click.target.matches(".action-replace, .action-replace *")){
+		if(!SelectedBuildType){
+			interface({
+				"div:name": "Cannot Rebuild",
+				"div:p": "Please select what you want to build"
+					+ " on the array of building icons "
+					+ "and press this button again"
+			});
+
+			return ;
+		}
+
+		const { cost } = SelectedBuildType;
+		if(cost > game.balance){
+			notif("[!] INSUFFICIENT FUNDS TO BUILD");
+
+			return ;
+		}
+
+		this.destroy && this.destroy();
+		build = new SelectedBuildType(game);
+		if(build.fail)
+			return ;
+		;
+		const [ x, y ] = this.getXY(game);
+		build.place(game, x, y);
+
+		for(const el of document.body
+			.querySelectorAll(".base .builds > *")
+		) el.classList.remove("active");
+		SelectedBuildType = null;
+
+		game.balance -= cost;
 	}
 }
 
@@ -415,8 +463,8 @@ Building.prototype.place = function(game, x, y){
 
 	game.buildings[x + (y * 10)] = this;
 	this.occupies.push([ x, y ]);
-	this.pxWidth = window.innerWidth/10;
-	this.pxHeight = this.pxWidth;
+	//this.pxWidth = window.innerWidth/10;
+	//this.pxHeight = this.pxWidth;
 }
 
 Building.prototype.getXY = function(game){
@@ -587,11 +635,13 @@ async function main(){
 	Building.fixing.src = "./icon/fix.png";
 
 	highlight(document.querySelector("body"))
-	//await tutorial(game);
+	if(settings("tutorial") != "false")
+		await tutorial(game)
+	;
 	game.started = 1;
 
 	//game.balance = 300;
-	game.balance = 300;
+	game.balance = Number(settings("starting-balance")) || 300;
 	game.trade.push(new MissileTrade());
 
 	notif("DEFENSK v" + VERSION);
@@ -610,9 +660,9 @@ async function main(){
 		[ "command", CommandBuilding ],
 		[ "resident", ResidentBuilding ],
 		[ "research", ResearchBuilding ],
-		[ "trade", ResearchBuilding ],
-		[ "transit", ResearchBuilding ],
-		[ "factory", ResearchBuilding ]
+		[ "trade", TradeBuilding ],
+		[ "transit", TransitBuilding ],
+		[ "factory", FactoryBuilding ]
 	];
 	const buildsDOM = document.querySelector(".base .builds");
 
@@ -628,7 +678,6 @@ async function main(){
 
 	buildTypes = Object.fromEntries(buildTypes);
 
-	let SelectedBuildType = null;
 	let builderLock = 0;
 	window.addEventListener("click", async function(click){
 		if(!click.target.matches(".interface *"))
@@ -740,6 +789,7 @@ async function main(){
 			return finish();
 		}
 
+		const { cost } = SelectedBuildType;
 		build = new SelectedBuildType(game);
 		if(build.fail)
 			return finish()
@@ -757,7 +807,7 @@ async function main(){
 
 		finish();
 
-		game.balance -= SelectedBuildType.cost;
+		game.balance -= cost;
 
 		for(const el of document.body
 			.querySelectorAll(".base .builds > *")

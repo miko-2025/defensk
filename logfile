@@ -14,3 +14,19 @@
 2026-01-09 20:58:33.285 WIB [4961] HINT:  Is another postmaster (PID 7302) running in data directory "/data/data/com.termux/files/home/postgresql"?
 2026-01-09 20:58:34.037 WIB [4983] FATAL:  lock file "postmaster.pid" already exists
 2026-01-09 20:58:34.037 WIB [4983] HINT:  Is another postmaster (PID 7302) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-10 14:57:10.764 WIB [5861] FATAL:  lock file "postmaster.pid" already exists
+2026-01-10 14:57:10.764 WIB [5861] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-10 14:57:12.149 WIB [5935] FATAL:  lock file "postmaster.pid" already exists
+2026-01-10 14:57:12.149 WIB [5935] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-10 22:33:45.503 WIB [3907] FATAL:  lock file "postmaster.pid" already exists
+2026-01-10 22:33:45.503 WIB [3907] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-10 22:33:47.038 WIB [4014] FATAL:  lock file "postmaster.pid" already exists
+2026-01-10 22:33:47.038 WIB [4014] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-11 12:56:22.713 WIB [23577] FATAL:  lock file "postmaster.pid" already exists
+2026-01-11 12:56:22.713 WIB [23577] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-11 12:56:24.481 WIB [23644] FATAL:  lock file "postmaster.pid" already exists
+2026-01-11 12:56:24.481 WIB [23644] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-11 17:17:12.535 WIB [2769] FATAL:  lock file "postmaster.pid" already exists
+2026-01-11 17:17:12.535 WIB [2769] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?
+2026-01-11 17:17:14.035 WIB [2881] FATAL:  lock file "postmaster.pid" already exists
+2026-01-11 17:17:14.035 WIB [2881] HINT:  Is another postmaster (PID 1393) running in data directory "/data/data/com.termux/files/home/postgresql"?

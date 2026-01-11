@@ -1,0 +1,10 @@
+mv frame_00001.png command.png
+mv frame_00002.png trade-center.png
+mv frame_00003.png transit.png
+mv frame_00004.png resident.png
+mv frame_00005.png factory.png
+mv frame_00006.png factory2.png
+mv frame_00007.png resident-hit.png
+mv frame_00008.png any-hit.png
+mv frame_00009.png lab.png
+mv frame_00010.png lab2.png

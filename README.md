@@ -6,14 +6,22 @@ city administration, build research lab to upgrade your defense, build
 trade center to control trades, etc.
 
 # Progress
+## 0.0.7
+- Buildings unimplemented, but can be constructed
+- Factory produces missile by default, but can't be configured
+- Fix and Rebuild is functional
 
-| Version           | Detail                        |
-|:------------------|------------------------------:|
-| v0.0.3            | The games in in a very unstable state with ideas being poured in and constant breaking code changes|
-|                   |                               |
-|                   |                               |
-|                   |                               |
-|                   |                               |
+### todo
+- Add options for factory production
+- Prototype for Command Map and Diplomacy
+- Variable Build Time
+- Additional texture as build is being constructed
+- Need to do something with auto defense missile
+- Add planes, with varying consequence in these cases
+- - Plane passes by
+- - Plane shot down
+- - Plane flying
+
 
 # Plan
 ## Actually implement research lab, trade center, and transit

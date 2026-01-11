@@ -1,139 +1,65 @@
 Building.prototype.interface = {
 	"div:right": {
-		"button:fix:action-fix": "Fix"
+		"button:fix:action-fix": "Fix",
+		"button:fix:action-replace": "Rebuild"
 	}
 }
 
-class CommandBuilding extends Building {
-	constructor(game){
-		super();
-		const _this = this;
-
-		if(game.buildings.find(
-			build => build instanceof CommandBuilding
-		)){
-			notif("ONLY ONE COMMAND BUILDING CAN BE BUILT");
-
-			this.fail = 1;
-			return undefined;
-		}
-
-		this.task = new Promise(async function(res){
-			let image = _this.image = new Image();
-			_this.imageOk = image;
-			image.src = URL.createObjectURL(await (
-				await fetch("./exp/command.png")
-			).blob());
-
-			image.onload = res;
-		});
-
-		this.revenues = [];
-		this.seconds = 0;
-		this.on("second", function(game){
-			if(_this.hit)
-				return ;
-
-			_this.image = _this.imageOk;
-
-			_this.seconds++;
-
-			if(_this.seconds % 120 == 0){
-				_this.reportRevenue(game);
-			}
-		});
-
-		this.on("hit", function(game, bomb, pass){
-			if(_this.hit)
-				return game.deleteBuild(_this);
-
-			_this.hit = true;
-			const image = new Image();
-			image.src = "./exp/any-hit.png";
-			image.onload = function(){
-				_this.image = image;
-			}
-		});
-	}
-}
-CommandBuilding.cost = 500;
-CommandBuilding.prototype.reportRevenue = function(game){
-	const { revenues } = this;
-	revenues.unshift(game.balance);
-	function calc(n){ return ~~(revenues[0] - revenues[n]); }
-
-	if(revenues.length == 1){
-		notif("[ COMMAND / REPORT / REVENUE]");
-		notif(`${revenues[0]} + FIRST ---`);
-		notif(``);
-		notif(`[ / END ]`)
-	} else {
-		[
-			"[ COMMAND / REPORT / REVENUE]",
-			`BALANCE: ${revenues[0]}`,
-			`${calc(1)} + FROM LAST ---`,
-			`${calc(2)} + FROM 2 AGO --`,
-			`${calc(3)} + FROM 3 AGO --`,
-			`${calc(4)} + FROM 4 AGO --`,
-			`[ / END ]`,
-		].map(function(text, i){
-			setTimeout(() => notif(text), i*1000);
-		})
-	}
-}
-
-CommandBuilding.prototype.destroy = function(){
-	notif("[!] ATTENTION");
-	notif("COMMAND CENTER IS LOST.");
-	notif("MANAGEMENT SYSTEM WILL SUFFER");
-}
-
-class ResearchBuilding extends Building {
-
-}
-
-class ResidentBuilding extends Building {
+class PipBuilding extends Building {
 	constructor(){
 		super();
 		const _this = this;
-
+		const Type = this.constructor;
 		this.task = new Promise(async function(res){
-			let image = _this.image = new Image();
-			_this.imageOk = image;
-			image.src = URL.createObjectURL(await (
-				await fetch("./exp/resident.png")
-			).blob());
+			_this.image =
+				await PipBuilding.waitImage(Type.imageHit);
+			await PipBuilding.waitImage(Type.imageOk);
 
-			image.onload = res;
+			res();
 		});
 
+		this.seconds = 0;
 		this.on("second", function(game){
-			_this.onSecond(game);
-		})
+			if(_this.hit){
+				_this.image = Type.imageHit;
+				return ;
+			}
+
+			_this.image = Type.imageOk;
+			_this.seconds++;
+		});
 
 		this.on("hit", function(game, bomb, pass){
 			if(_this.hit)
 				return game.deleteBuild(_this);
 
 			_this.hit = true;
-			const image = new Image();
-			image.src = "./exp/resident-hit.png";
-			image.onload = function(){
-				_this.image = image;
-			}
+			_this.image = Type.imageHit;
 		});
 	}
 }
 
-ResidentBuilding.prototype.onSecond = function(game){
-	if(this.hit)
-		return ;
+PipBuilding.Image = function(url){
+	const image = new Image();
+	new Promise(async res => { res();
+		image.src = URL.createObjectURL(await (
+			await fetch(url)
+		).blob());
+	});
 
-	game.balance = (~~((game.balance + 0.9) * 10))/10;
-	this.image = this.imageOk;
+	return image;
 }
 
-ResidentBuilding.cost = 100;
+PipBuilding.waitImage = function(image){
+	return new Promise(function(res){
+		if(image.complete)
+			res(image);
+
+		image.addEventListener("load", function(){
+			res(image);
+		});
+	});
+}
 
 class SelectorBuilding extends Building {
 	constructor(){

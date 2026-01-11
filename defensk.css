@@ -166,12 +166,20 @@ button {
 	border-top-width: 1px;
 	border-bottom-width: 3px;
 	font-family: inherit;
-	width: 3em;
-	height: 3em;
 	display: inline-block;
 	vertical-align: top;
 	background-size: auto 100%;
 	filter: invert(0.6);
+	min-height: 3em;
+}
+
+button.disabled {
+	opacity: 0.2;
+}
+
+.builds button {
+	width: 3em;
+	height: 3em;
 }
 
 button.active, button:active {
@@ -384,10 +392,24 @@ button.active {
 	word-break: break-all;
 }
 
+.interface .name {
+	font-size: 0.7em;
+	text-align: center;
+}
+
 .interface .right {
-	position: relative;
+	position: absolute;
 	left: 99%;
 	display: inline-block;
 	transform: translateX(-100%);
+	width: fit-content;
 }
 
+.interface > * {
+	min-height: 1em;
+}
+
+.interface > button {
+	min-height: 3em;
+	min-width: 3em;
+}
