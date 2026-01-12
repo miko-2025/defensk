@@ -45,6 +45,67 @@ class Game extends EventSystem {
 	}
 }
 
+Game.prototype.save = function(){
+	const _this = this;
+	const buildings = this.buildings.filter(Boolean)
+		.map(function(building){
+			const type = building.constructor.name;
+			const [ x, y ] = building.getXY(_this);
+
+			return Object.assign({
+				x, y, type
+			}, building.json ? building.json() : building);
+		}
+	);
+	const data = {
+		buildings,
+		balance: game.balance,
+		ammo: game.ammo
+	};
+
+	localStorage.setItem("save", JSON.stringify(data));
+}
+
+Game.prototype.load = function(){
+	const json = localStorage.getItem("save");
+	if(!json)
+		return false;
+
+	const data = JSON.parse(json);
+	for(const building of data.buildings){
+		const Type = eval(`${building.type}`);
+		const build = new Type(this);
+		delete building.image;
+		delete building.images;
+		delete building._events;
+
+		build.place(this, building.x, building.y);
+		build.hit = building.hit || false;
+
+		if(build.load){
+			build.load(building);
+
+			continue ;
+		} else {
+			Object.assign(build, building);
+		}
+	}
+
+	game.ammo = data.ammo;
+	game.balance = data.balance;
+}
+
+Game.prototype.printSave = function(){
+	const json = localStorage.getItem("save");
+	if(!json)
+		return false;
+
+
+	const win = window.open("about:blank", "_blank");
+	win.document.write(json);
+	win.document.close();
+}
+
 Game.constructorExtended = function(game){
 	let difficulty = 5;
 	let last = 0;

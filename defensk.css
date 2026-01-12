@@ -143,11 +143,19 @@ canvas.main, .city-canvas {
 	line-height: 2em;
 }
 
-.missile {
+.missile, .settings {
 	line-height: 2em;
 }
 
-.missile::before {
+.settings {
+	position: absolute;
+	left: 99%;
+	top: 1em;
+	transform: translateX(-100%);
+	filter: unset;
+}
+
+.settings::before, .missile::before {
 	display: inline-block;
 	width: 2em;
 	height: 2em;
@@ -158,6 +166,12 @@ canvas.main, .city-canvas {
 	background-size: 2em 2em;
 	vertical-align: middle;
 	opacity: 0.4;
+}
+
+.settings::before {
+	background-image: url(./icon/fix.png);
+	filter: saturate(0) brightness(12);
+	font-size: 1.2em;
 }
 
 button {

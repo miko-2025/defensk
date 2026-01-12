@@ -13,7 +13,7 @@ function settings(key){
 	return "ultra";
 }
 
-const VERSION = "0.0.7";
+const VERSION = "0.0.8";
 let Defensk = null;
 let defensk = null;
 
@@ -634,6 +634,56 @@ async function main(){
 	Building.fixing = new Image();
 	Building.fixing.src = "./icon/fix.png";
 
+	window.addEventListener("click", async function(click){
+		if((document.querySelector(".interface .name") || {})
+			.textContent != "Settings"
+		) return ;
+		const _ = click.target.classList.contains.bind(
+			click.target.classList
+		);
+		const msg = document.querySelector("div.message");
+
+		if(_("action-save")){
+			game.save(0);
+			msg.textContent = "Saved!"
+		}
+
+		if(_("action-load")){
+			game.load(0);
+			msg.textContent = "Load!"
+		}
+
+		if(_("skip-tutorial")){
+			window.location.href = window.location.href
+				+ "?tutorial=false"
+		}
+
+		if(_("action-discord")){
+			window.open("https://discord.gg/vustCWN87D");
+		}
+	});
+
+	window.addEventListener("click", async function(click){
+		if(!click.target.matches(".status .settings"))
+			return ;
+
+		interface({
+			"div:name": "Settings",
+			"div:message": "",
+			"button:action-save": "Save",
+			"div:message1": "",
+			"button:action-load": "Load",
+			"div:message2": "",
+			"button:skip-tutorial": "Skip Tutorial",
+			"div:message3": "",
+			//"button:action-dev": "Dev Options",
+			"button:action-discord": "Discord",
+			"div:message4": "",
+		});
+
+		window.scrollTo(0, document.body.scrollHeight)
+	});
+
 	highlight(document.querySelector("body"))
 	if(settings("tutorial") != "false")
 		await tutorial(game)
@@ -684,6 +734,9 @@ async function main(){
 			return ;
 
 		const slotXY = document.querySelector(`.interface .slot`);
+		if(!slotXY)
+			return ;
+
 		const [ x, y ] = Building.getXYFromSlot(slotXY);
 		const build = game.getBuildFromXY(x, y);
 

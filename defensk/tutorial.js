@@ -176,12 +176,14 @@ async function tutorial(game){
 	let builds = [];
 	let build;
 	let slot;
+	Object.assign(game, render());
 	while(1){
 		click = await uwait.click();
 		if(!click.target.matches(".resident"))
 			continue ;
 
 		build = new ResidentBuilding();
+		build.image = ResidentBuilding.imageOK;
 		break ;
 	}
 
@@ -208,6 +210,7 @@ async function tutorial(game){
 		for(const build of builds)
 			build.emit("second", game);
 
+		build.draw(game);
 		setTimeout(f, 1000);
 	}, 1000);
 

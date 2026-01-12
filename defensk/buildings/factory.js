@@ -43,6 +43,37 @@ class FactoryBuilding extends PipBuilding {
 		});
 	}
 }
+FactoryBuilding.prototype.json = function(){
+	const data = { ...this };
+	data.projects = this.projects.map(project => {
+		return {
+			type: project.constructor.name,
+
+			...(project.json ? project.json() : {})
+		}
+	});
+
+	return data;
+}
+FactoryBuilding.prototype.load = function(data){
+	Object.assign(this, data);
+
+	this.projects = (data.projects || []).map(project => {
+		const Type = eval(`${project.type}`);
+		const obj = new Type();
+
+		if(obj.load){
+			obj.load(project);
+		} else {
+			Object.assign(obj, project)
+		}
+
+		return obj;
+	});
+
+	return this;
+}
+
 FactoryBuilding.imageOk = PipBuilding.Image("./exp/factory.png");
 FactoryBuilding.imageHit = PipBuilding.Image("./exp/any-hit.png");
 FactoryBuilding.cost = 500;

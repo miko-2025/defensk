@@ -6,6 +6,10 @@ city administration, build research lab to upgrade your defense, build
 trade center to control trades, etc.
 
 # Progress
+## 0.0.8
+- Implemented Save/Load
+- Allow skipping tutorial from Settings
+
 ## 0.0.7
 - Buildings unimplemented, but can be constructed
 - Factory produces missile by default, but can't be configured
